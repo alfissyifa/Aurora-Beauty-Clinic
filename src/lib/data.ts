@@ -10,38 +10,8 @@ const findImage = (id: string) => {
   return image;
 };
 
-export const services = [
-  {
-    title: "Facial Glow",
-    description: "A comprehensive facial treatment to cleanse, exfoliate, and nourish the skin, promoting a clear, well-hydrated complexion and can help your skin look younger.",
-    price: 500000,
-    image: findImage('service-facial'),
-  },
-  {
-    title: "Laser Treatment",
-    description: "Advanced laser technology to address various skin concerns such as pigmentation, scars, and signs of aging, revealing smoother and more even-toned skin.",
-    price: 1500000,
-    image: findImage('service-laser'),
-  },
-  {
-    title: "Botox",
-    description: "Expertly administered Botox injections to reduce the appearance of fine lines and wrinkles, resulting in a smoother, more youthful look.",
-    price: 2000000,
-    image: findImage('service-botox'),
-  },
-  {
-    title: "Whitening Infusion",
-    description: "A specialized infusion treatment designed to brighten and even out skin tone, giving you a radiant and luminous glow from within.",
-    price: 1200000,
-    image: findImage('service-whitening'),
-  },
-  {
-    title: "Acne Treatment",
-    description: "A targeted treatment program to combat acne, reduce inflammation, and prevent future breakouts, leading to clearer and healthier skin.",
-    price: 750000,
-    image: findImage('service-acne'),
-  },
-];
+// This data is now managed in Firestore. Keeping the file for other static data.
+export const services = [];
 
 export const testimonials = [
   {

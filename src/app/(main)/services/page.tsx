@@ -1,10 +1,49 @@
+'use client';
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { services } from "@/lib/data";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
+
+type Service = {
+    id: string;
+    title: string;
+    description: string;
+    price: number;
+    image: string;
+    imageHint: string;
+}
+
+const ServiceCardSkeleton = ({ index }: { index: number }) => (
+    <Card className="overflow-hidden shadow-lg border-none">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div className={`relative aspect-video lg:aspect-[4/3] ${index % 2 !== 0 ? 'lg:order-last' : ''}`}>
+                <Skeleton className="w-full h-full" />
+            </div>
+            <div className="p-8">
+                <Skeleton className="h-10 w-3/4 mb-4" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-full mb-4" />
+                <Skeleton className="h-8 w-1/2 mb-6" />
+                <Skeleton className="h-12 w-32" />
+            </div>
+        </div>
+    </Card>
+);
+
 
 export default function ServicesPage() {
+  const firestore = useFirestore();
+  
+  const servicesQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return query(collection(firestore, 'services'), orderBy('title', 'asc'));
+  }, [firestore]);
+
+  const { data: services, isLoading } = useCollection<Service>(servicesQuery);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -24,17 +63,19 @@ export default function ServicesPage() {
         </div>
 
         <div className="space-y-16">
-          {services.map((service, index) => (
-            <Card key={service.title} className="overflow-hidden shadow-lg border-none">
+          {isLoading && Array.from({ length: 3 }).map((_, index) => <ServiceCardSkeleton key={index} index={index} />)}
+          
+          {!isLoading && services?.map((service, index) => (
+            <Card key={service.id} className="overflow-hidden shadow-lg border-none">
               <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 items-center`}>
                 <div className={`relative aspect-video lg:aspect-[4/3] ${index % 2 !== 0 ? 'lg:order-last' : ''}`}>
                   <Image
-                    src={service.image.imageUrl}
+                    src={service.image}
                     alt={service.title}
                     fill
                     className="object-cover rounded-lg"
                     sizes="(max-width: 1024px) 100vw, 50vw"
-                    data-ai-hint={service.image.imageHint}
+                    data-ai-hint={service.imageHint}
                   />
                 </div>
                 <div className="p-8">

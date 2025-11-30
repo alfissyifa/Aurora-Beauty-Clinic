@@ -7,7 +7,7 @@
  * There are no user-specific subcollections or nested data structures, which simplifies the security model.
  *
  * Key Security Decisions:
- * - Public Read-Only Collections: /services and /testimonials are configured to be publicly readable by anyone. All write operations are denied.
+ * - Public Read-Only Collections: /services and /testimonials are configured to be publicly readable by anyone. All write operations are denied unless by an admin.
  * - Public Create for Appointments: /appointments allows any client to create a new document. Read/update/delete operations are denied for non-admins.
  * - Conditional Admin Creation: The /admins collection has the most restrictive rules. A new admin document can ONLY be created if the collection is currently empty.
  *   This ensures that only the very first admin can be registered. Once one admin exists, no new ones can be created from the client.
@@ -33,11 +33,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description   Allows public read-only access to beauty service information.
+     * @description Allows public read access to services. Allows admin write access.
      */
     match /services/{serviceId} {
       allow get, list: if true;
-      allow write: if false;
+      allow write: if isAdmin();
     }
 
     /**
@@ -45,7 +45,7 @@ service cloud.firestore {
      */
     match /testimonials/{testimonialId} {
       allow get, list: if true;
-      allow write: if false;
+      allow write: if isAdmin();
     }
 
     /**
@@ -68,7 +68,7 @@ service cloud.firestore {
      match /admins/{adminId} {
         allow list: if true;
         allow get: if isAdmin();
-        allow create: if !exists(/databases/$(database)/documents/admins/$(request.resource.data.uid));
+        allow create: !exists(/databases/$(database)/documents/admins/$(request.resource.data.uid));
         allow update, delete: if false;
     }
   }

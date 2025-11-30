@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, query, orderBy } from "firebase/firestore";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,11 +36,14 @@ import {
 } from "@/components/ui/popover";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { services } from "@/lib/data";
-import { useFirebase } from "@/firebase";
+import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
 
+type Service = {
+    id: string;
+    title: string;
+}
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Nama harus diisi, minimal 2 karakter." }),
@@ -55,6 +58,14 @@ export default function BookingForm() {
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  const servicesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'services'), orderBy('title', 'asc'));
+  }, [firestore]);
+
+  const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesQuery);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -159,15 +170,15 @@ export default function BookingForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Layanan yang Diinginkan</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingServices}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih salah satu layanan" />
+                        <SelectValue placeholder={isLoadingServices ? "Memuat layanan..." : "Pilih salah satu layanan"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {services.map((service) => (
-                        <SelectItem key={service.title} value={service.title}>
+                      {services?.map((service) => (
+                        <SelectItem key={service.id} value={service.title}>
                           {service.title}
                         </SelectItem>
                       ))}

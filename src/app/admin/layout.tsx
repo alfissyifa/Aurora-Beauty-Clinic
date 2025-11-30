@@ -63,7 +63,7 @@ export default function AdminLayout({
   // While loading auth state, show a simplified layout or a loading spinner
   if (isUserLoading) {
     return (
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex items-center justify-center h-screen bg-white">
             <div className="text-lg">Memuat...</div>
         </div>
     );
@@ -118,7 +118,7 @@ export default function AdminLayout({
             </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="bg-white">
         <header className='flex items-center justify-between gap-4 border-b p-3 h-20 bg-card'>
             <div className="flex items-center gap-2">
                 <SidebarTrigger />

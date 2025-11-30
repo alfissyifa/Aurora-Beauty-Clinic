@@ -95,7 +95,7 @@ export function DataTable<TData, TValue>({
         // Default sort
         onSortChange('createdAt', true);
     }
-  }, [sorting, onSortChange]);
+  }, [sorting]);
 
   return (
     <div className="space-y-4">

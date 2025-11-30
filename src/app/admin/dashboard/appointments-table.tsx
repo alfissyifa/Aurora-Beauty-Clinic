@@ -69,11 +69,10 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         let q: Query<DocumentData> = collection(firestore, 'appointments');
 
         if (status) {
+            // CRITICAL FIX: Only filter by status. DO NOT add orderBy for another field
+            // as this requires a composite index which we cannot create automatically.
+            // This prevents the Firestore index error.
             q = query(q, where('status', '==', status));
-            // IMPORTANT: When filtering by status, we CANNOT reliably sort by another field
-            // without a composite index. To avoid the index error, we remove dynamic sorting here.
-            // We'll rely on the default ordering or a simple orderBy on the status field itself.
-             q = query(q, orderBy('createdAt', 'desc')); 
         } else {
              // Sorting is only applied when not filtering by status to avoid index errors.
              q = query(q, orderBy(newSort.id, newSort.desc ? 'desc' : 'asc'));
@@ -128,15 +127,19 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         description: `Janji temu telah dipindahkan ke "Sudah Dibaca".`
       });
       // Refetch data for the current view
-      fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort });
+      fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort, direction: 'none' });
     } catch (e: any) {
        toast({
         variant: "destructive",
         title: "Gagal Memperbarui",
         description: e.message || "Tidak dapat memperbarui status janji temu."
        });
-       if (e instanceof FirestorePermissionError) {
-         errorEmitter.emit('permission-error', e);
+       if (e.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'update',
+                requestResourceData: { status: newStatus }
+            }));
        }
     }
   };
@@ -150,15 +153,18 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         title: "Janji Temu Dihapus",
         description: `Janji temu telah berhasil dihapus.`
       });
-      fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort });
+      fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort, direction: 'none' });
     } catch (e: any) {
        toast({
         variant: "destructive",
         title: "Gagal Menghapus",
         description: e.message || "Tidak dapat menghapus janji temu."
        });
-       if (e instanceof FirestorePermissionError) {
-         errorEmitter.emit('permission-error', e);
+       if (e.code === 'permission-denied') {
+         errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'delete'
+            }));
        }
     }
   };
@@ -189,8 +195,16 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
       header: "Tgl Konsultasi",
       cell: ({ row }: any) => {
           try {
-              return format(new Date(row.getValue("date")), "eeee, dd MMMM yyyy", { locale: id });
+              const dateValue = row.getValue("date");
+              if (!dateValue) return 'N/A';
+              // Check if it's a Firebase Timestamp
+              if (dateValue.seconds) {
+                  return format(new Date(dateValue.seconds * 1000), "eeee, dd MMMM yyyy", { locale: id });
+              }
+              // Assume it's an ISO string or other valid date string
+              return format(new Date(dateValue), "eeee, dd MMMM yyyy", { locale: id });
           } catch (e) {
+              console.error("Invalid date format for 'date':", row.getValue("date"));
               return 'Invalid Date';
           }
       },
@@ -201,7 +215,12 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
       cell: ({ row }: any) => {
           const timestamp = row.getValue("createdAt") as Timestamp;
           if (!timestamp?.seconds) return 'N/A';
-          return format(new Date(timestamp.seconds * 1000), "dd MMM yyyy, HH:mm");
+          try {
+            return format(new Date(timestamp.seconds * 1000), "dd MMM yyyy, HH:mm");
+          } catch(e) {
+            console.error("Invalid date format for 'createdAt':", timestamp);
+            return 'Invalid Date';
+          }
       },
     },
     {
@@ -292,4 +311,5 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
   );
 }
 
+    
     

@@ -1,20 +1,14 @@
 'use client';
 
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit as firestoreLimit } from 'firebase/firestore';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useState, useMemo } from 'react';
+import { useFirestore } from '@/firebase';
+import { collection, query, orderBy, limit, startAfter, endBefore, limitToLast, getDocs, where, Query, DocumentData, Timestamp, QueryDocumentSnapshot } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+
+import { DataTable } from '@/components/data-table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 interface Appointment {
   id: string;
@@ -24,99 +18,172 @@ interface Appointment {
   service: string;
   date: string; // ISO string
   note: string;
-  createdAt: {
-    seconds: number;
-    nanoseconds: number;
-  };
+  createdAt: Timestamp;
 }
 
+const columns = [
+  {
+    accessorKey: "name",
+    header: "Nama Pelanggan",
+    cell: ({ row }: any) => <div className="font-medium">{row.getValue("name")}</div>,
+  },
+  {
+    accessorKey: "contact",
+    header: "Kontak",
+    cell: ({ row }: any) => (
+      <div>
+        <div>{row.original.phone}</div>
+        <div className="text-xs text-muted-foreground">{row.original.email}</div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "service",
+    header: "Layanan",
+    cell: ({ row }: any) => <Badge variant="secondary">{row.getValue("service")}</Badge>,
+  },
+  {
+    accessorKey: "date",
+    header: "Tgl Konsultasi",
+    cell: ({ row }: any) => {
+        try {
+            return format(new Date(row.getValue("date")), "eeee, dd MMMM yyyy", { locale: id });
+        } catch (e) {
+            return 'Invalid Date';
+        }
+    },
+  },
+    {
+    accessorKey: "createdAt",
+    header: "Tgl Booking",
+    cell: ({ row }: any) => {
+        const timestamp = row.getValue("createdAt") as Timestamp;
+        if (!timestamp?.seconds) return 'N/A';
+        return format(new Date(timestamp.seconds * 1000), "dd MMM yyyy, HH:mm");
+    },
+  },
+];
+
+
 const AppointmentRowSkeleton = () => (
-    <TableRow>
-      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-    </TableRow>
+    <div className="space-y-2">
+      <Skeleton className="h-12 w-full" />
+      <Skeleton className="h-12 w-full" />
+      <Skeleton className="h-12 w-full" />
+      <Skeleton className="h-12 w-full" />
+      <Skeleton className="h-12 w-full" />
+    </div>
 );
 
-export default function AppointmentsTable({ limit }: { limit?: number }) {
+export default function AppointmentsTable({ limit: initialLimit }: { limit?: number }) {
   const firestore = useFirestore();
+  const [data, setData] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const appointmentsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    const baseQuery = query(collection(firestore, 'appointments'), orderBy('createdAt', 'desc'));
-    if (limit) {
-      return query(baseQuery, firestoreLimit(limit));
-    }
-    return baseQuery;
-  }, [firestore, limit]);
+  // Pagination state
+  const [pageSize, setPageSize] = useState(initialLimit || 10);
+  const [filter, setFilter] = useState('');
+  const [sort, setSort] = useState({ id: 'createdAt', desc: true });
+  
+  // For pagination cursor
+  const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [page, setPage] = useState(0); // 0-indexed page
 
-  const { data: appointments, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'Invalid Date';
+  const fetchData = async (
+    { pageIndex, pageSize: newPageSize, newFilter, newSort, direction }: 
+    { pageIndex: number, pageSize: number, newFilter: string, newSort: {id: string, desc: boolean}, direction?: 'next' | 'prev' | 'none' }
+  ) => {
+    if (!firestore) return;
+
+    setIsLoading(true);
+    setError(null);
+
     try {
-      return format(new Date(dateString), "eeee, dd MMMM yyyy", { locale: id });
-    } catch (e) {
-      return 'Invalid Date';
+        const appointmentsCollection = collection(firestore, 'appointments');
+        let q: Query<DocumentData>;
+
+        const order = orderBy(newSort.id, newSort.desc ? 'desc' : 'asc');
+        
+        let pagination;
+        if (direction === 'next' && lastVisible) {
+            pagination = startAfter(lastVisible);
+        } else if (direction === 'prev' && firstVisible) {
+             q = query(appointmentsCollection, order, endBefore(firstVisible), limitToLast(newPageSize));
+             // For 'prev', we don't need another cursor
+        } else {
+            q = query(appointmentsCollection, order, limit(newPageSize));
+        }
+
+        if (pagination) {
+            q = query(appointmentsCollection, order, pagination, limit(newPageSize));
+        } else if (!q) {
+            q = query(appointmentsCollection, order, limit(newPageSize));
+        }
+        
+        // Basic filter by name - case-insensitive would require more complex setup
+        // For simplicity, we filter where name is >= search text.
+        if (newFilter) {
+            q = query(q, where('name', '>=', newFilter), where('name', '<=', newFilter + '\uf8ff'));
+        }
+
+      const docSnap = await getDocs(q);
+      const appointments: Appointment[] = docSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
+
+      setData(appointments);
+      setFirstVisible(docSnap.docs[0] || null);
+      setLastVisible(docSnap.docs[docSnap.docs.length - 1] || null);
+      
+      if (direction === 'prev') {
+          setPage(pageIndex > 0 ? pageIndex - 1 : 0);
+      } else if (direction === 'next') {
+          setPage(pageIndex + 1);
+      } else {
+          setPage(0);
+      }
+
+
+    } catch (e: any) {
+      console.error("Error fetching appointments:", e);
+      setError(e);
+      setData([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const formatTimestamp = (timestamp: { seconds: number }) => {
-    if (!timestamp?.seconds) return 'N/A';
-    return format(new Date(timestamp.seconds * 1000), "dd MMM yyyy, HH:mm");
+  React.useEffect(() => {
+    fetchData({ pageIndex: 0, pageSize, newFilter: filter, newSort: sort });
+  }, [firestore, pageSize, filter, sort]); // Refetch on changes
+  
+  const handleNextPage = () => {
+    fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort, direction: 'next' });
   };
+
+  const handlePrevPage = () => {
+     fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort, direction: 'prev' });
+  };
+  
+  if (isLoading && data.length === 0) {
+      return <AppointmentRowSkeleton />;
+  }
 
   return (
-    <Table>
-      <TableCaption>Daftar janji temu yang telah dibuat oleh pelanggan.</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Nama Pelanggan</TableHead>
-          <TableHead>Kontak</TableHead>
-          <TableHead>Layanan</TableHead>
-          <TableHead>Tgl Konsultasi</TableHead>
-          <TableHead>Tgl Booking</TableHead>
-          <TableHead>Catatan</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {isLoading && Array.from({ length: limit || 5 }).map((_, i) => <AppointmentRowSkeleton key={i} />)}
-        
-        {!isLoading && appointments?.map((apt) => (
-          <TableRow key={apt.id}>
-            <TableCell className="font-medium">{apt.name}</TableCell>
-            <TableCell>
-                <div>{apt.phone}</div>
-                <div className="text-xs text-muted-foreground">{apt.email}</div>
-            </TableCell>
-            <TableCell>
-              <Badge variant="secondary">{apt.service}</Badge>
-            </TableCell>
-            <TableCell>{formatDate(apt.date)}</TableCell>
-            <TableCell>{formatTimestamp(apt.createdAt)}</TableCell>
-            <TableCell className='max-w-xs truncate'>{apt.note || '-'}</TableCell>
-          </TableRow>
-        ))}
-
-        {!isLoading && appointments?.length === 0 && (
-            <TableRow>
-                <TableCell colSpan={6} className="text-center h-24">
-                    Belum ada janji temu yang dibuat.
-                </TableCell>
-            </TableRow>
-        )}
-        
-        {error && (
-             <TableRow>
-                <TableCell colSpan={6} className="text-center h-24 text-destructive">
-                    Gagal memuat data: {error.message}
-                </TableCell>
-            </TableRow>
-        )}
-      </TableBody>
-    </Table>
+    <DataTable
+        columns={columns}
+        data={data}
+        isLoading={isLoading}
+        onFilterChange={setFilter}
+        onSortChange={(id, desc) => setSort({id, desc})}
+        onPageSizeChange={setPageSize}
+        pageSize={pageSize}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
+        canNextPage={data.length === pageSize}
+        canPrevPage={page > 0}
+        pageIndex={page}
+    />
   );
 }

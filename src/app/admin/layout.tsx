@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { LayoutDashboard, LogOut, Search, Bell, MessageSquare, User as UserIcon, Settings, Mail } from 'lucide-react';
+import { LayoutDashboard, LogOut, Search, Bell, MessageSquare, User as UserIcon, Settings, Mail, Sparkles } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 
 import {
@@ -64,8 +64,9 @@ export default function AdminLayout({
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader className="h-20 flex items-center justify-center bg-sidebar-primary">
-            <div className="text-2xl font-bold text-sidebar-primary-foreground">
-                Quixlab
+            <div className="flex items-center gap-2 text-2xl font-bold text-sidebar-primary-foreground">
+                <Sparkles className="h-6 w-6" />
+                <span>Aurora</span>
             </div>
         </SidebarHeader>
         <SidebarContent>

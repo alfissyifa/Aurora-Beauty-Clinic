@@ -1,0 +1,193 @@
+{
+  "entities": {
+    "Service": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Service",
+      "type": "object",
+      "description": "Represents a beauty service offered by the Aurora Beauty Clinic.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the service.",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the service (e.g., Facial Glow)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the service."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the service."
+        },
+        "image": {
+          "type": "string",
+          "description": "URL of the image representing the service.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "price",
+        "image"
+      ]
+    },
+    "Testimonial": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Testimonial",
+      "type": "object",
+      "description": "Represents a customer testimonial for the Aurora Beauty Clinic.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the testimonial.",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the customer providing the testimonial."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Rating given by the customer (1-5).",
+          "format": "integer",
+          "items": {
+            "type": "number"
+          }
+        },
+        "comment": {
+          "type": "string",
+          "description": "Text of the testimonial comment."
+        },
+        "image": {
+          "type": "string",
+          "description": "URL of the customer's image (optional).",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "rating",
+        "comment"
+      ]
+    },
+    "Appointment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Appointment",
+      "type": "object",
+      "description": "Represents a consultation appointment booked by a customer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the appointment.",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the customer booking the appointment."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the customer."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the customer.",
+          "format": "email"
+        },
+        "service": {
+          "type": "string",
+          "description": "Name of the service selected for the appointment."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the appointment.",
+          "format": "date-time"
+        },
+        "note": {
+          "type": "string",
+          "description": "Additional notes or comments from the customer."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the appointment was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "phone",
+        "email",
+        "service",
+        "date",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/services/{serviceId}",
+        "definition": {
+          "entityName": "Service",
+          "schema": {
+            "$ref": "#/backend/entities/Service"
+          },
+          "description": "Stores details about beauty services offered by the clinic. Read-only access from the frontend.",
+          "params": [
+            {
+              "name": "serviceId",
+              "description": "Unique identifier for the service."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/testimonials/{testimonialId}",
+        "definition": {
+          "entityName": "Testimonial",
+          "schema": {
+            "$ref": "#/backend/entities/Testimonial"
+          },
+          "description": "Stores customer testimonials. Read-only access from the frontend.",
+          "params": [
+            {
+              "name": "testimonialId",
+              "description": "Unique identifier for the testimonial."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores appointment booking data. Write-only access from the backend via Cloud Functions.",
+          "params": [
+            {
+              "name": "appointmentId",
+              "description": "Unique identifier for the appointment."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the Aurora Beauty Clinic application, focusing on services, testimonials, and appointment bookings.  The structure prioritizes security, scalability, and ease of maintenance.\n\nAuthorization Independence is achieved by ensuring that authorization rules rely solely on `request.auth.uid` where necessary (though the current entities do not require user-based authorization). Since there are no user roles or specific ownership requirements defined in the provided entities or app requirements, Authorization Independence is not explicitly needed. However, should access controls be added later, denormalization should be considered.\n\nQAPs (Rules are not Filters) are supported through structural segregation.  The `services` and `testimonials` collections are designed to be read-only from the frontend, ensuring data integrity and preventing unauthorized modifications. The `appointments` collection is write-only from the backend via Cloud Functions, further isolating access and enforcing controlled data creation. All documents in each collection share the same security requirements, simplifying rule definitions.\n\nExplicit state modeling is not needed in this case since we don't have any state transitions (e.g. DRAFT -> PUBLISHED). The entities defined are relatively straightforward, and no complex state is indicated in the application requirements."
+  }
+}

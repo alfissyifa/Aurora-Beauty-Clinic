@@ -68,68 +68,43 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
     try {
         let q: Query<DocumentData> = collection(firestore, 'appointments');
 
-        // Apply status filter first
         if (status) {
             q = query(q, where('status', '==', status));
         }
 
-        // Apply sorting - If filtering by status, sorting on another field requires a composite index.
-        // To avoid this, we'll fetch and then sort client-side if a status filter is active.
-        if (!status) {
-            const order = orderBy(newSort.id, newSort.desc ? 'desc' : 'asc');
-            q = query(q, order);
-        }
-        
-        if (direction === 'next' && lastVisible && !status) {
+        // Always sort by createdAt descending as the primary sort order
+        q = query(q, orderBy(newSort.id, newSort.desc ? 'desc' : 'asc'));
+
+        if (direction === 'next' && lastVisible) {
             q = query(q, startAfter(lastVisible));
-        } else if (direction === 'prev' && firstVisible && !status) {
+        } else if (direction === 'prev' && firstVisible) {
              q = query(q, endBefore(firstVisible), limitToLast(newPageSize));
         }
         
-        // We only apply limit if we are not doing client-side sorting/pagination
-        if (!status) {
-          q = query(q, limit(newPageSize));
-        }
+        q = query(q, limit(newPageSize));
         
+        // Note: Filtering by name requires an additional index if combined with other orderBy clauses
+        // For simplicity, this example might require a name_lowercase field and index in a real app.
         if (newFilter) {
+             // This simple filter works best with an exact match or prefix, not ideal for substrings.
             q = query(q, where('name', '>=', newFilter), where('name', '<=', newFilter + '\uf8ff'));
         }
 
       const docSnap = await getDocs(q);
-      let appointments: Appointment[] = docSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
+      const appointments: Appointment[] = docSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
 
-      // If we are filtering by status, we must sort client-side.
-      if (status) {
-          appointments.sort((a, b) => {
-              const valA = (a as any)[newSort.id];
-              const valB = (b as any)[newSort.id];
-              if (valA < valB) return newSort.desc ? 1 : -1;
-              if (valA > valB) return newSort.desc ? -1 : 1;
-              return 0;
-          });
-          
-          // Manual pagination
-          const start = pageIndex * newPageSize;
-          const end = start + newPageSize;
-          setData(appointments.slice(start, end));
-          
-          // For client-side pagination, we don't use Firestore cursors
-          setFirstVisible(null);
-          setLastVisible(null);
-          setPage(pageIndex);
+      setData(appointments);
+      setFirstVisible(docSnap.docs[0] || null);
+      setLastVisible(docSnap.docs[docSnap.docs.length - 1] || null);
 
+      if (direction === 'prev') {
+          setPage(pageIndex > 0 ? pageIndex - 1 : 0);
+      } else if (direction === 'next') {
+          setPage(pageIndex + 1);
       } else {
-        setData(appointments);
-        setFirstVisible(docSnap.docs[0] || null);
-        setLastVisible(docSnap.docs[docSnap.docs.length - 1] || null);
-        if (direction === 'prev') {
-            setPage(pageIndex > 0 ? pageIndex - 1 : 0);
-        } else if (direction === 'next') {
-            setPage(pageIndex + 1);
-        } else {
-            setPage(0);
-        }
+          setPage(0);
       }
+
 
     } catch (e: any) {
       console.error("Error fetching appointments:", e);

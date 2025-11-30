@@ -1,3 +1,136 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-bg",
+      "description": "Elegant woman with flawless skin in a serene setting",
+      "imageUrl": "https://images.unsplash.com/photo-1544717304-a2db4a7b16ee?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMGJlYXV0eXxlbnwwfHx8fDE3NjQ1MTI1MjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman beauty"
+    },
+    {
+      "id": "service-facial",
+      "description": "Woman receiving a relaxing facial treatment",
+      "imageUrl": "https://images.unsplash.com/photo-1643684460412-76908d8e5a25?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxmYWNpYWwlMjB0cmVhdG1lbnR8ZW58MHx8fHwxNzY0NTEyNTI3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "facial treatment"
+    },
+    {
+      "id": "service-laser",
+      "description": "Close-up of a laser treatment on skin",
+      "imageUrl": "https://images.unsplash.com/photo-1700760933574-9f0f4ea9aa3b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsYXNlciUyMHRyZWF0bWVudHxlbnwwfHx8fDE3NjQ0NTQwMDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "laser treatment"
+    },
+    {
+      "id": "service-botox",
+      "description": "Aesthetically pleasing image of a syringe for botox treatment",
+      "imageUrl": "https://images.unsplash.com/photo-1609009631378-8b8be31f84fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y29zbWV0aWMlMjBpbmplY3Rpb258ZW58MHx8fHwxNzY0NDU0NDQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cosmetic injection"
+    },
+    {
+      "id": "service-whitening",
+      "description": "Woman with bright, glowing skin",
+      "imageUrl": "https://images.unsplash.com/photo-1694147185194-f91cd8a50680?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxnbG93aW5nJTIwc2tpbnxlbnwwfHx8fDE3NjQ0Mzk5NjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "glowing skin"
+    },
+    {
+      "id": "service-acne",
+      "description": "Clear skin after successful acne treatment",
+      "imageUrl": "https://images.unsplash.com/photo-1668596808908-ac4d45963462?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjbGVhciUyMHNraW58ZW58MHx8fHwxNzY0NDIzNzk3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "clear skin"
+    },
+    {
+      "id": "testimonial-1",
+      "description": "Happy customer smiling",
+      "imageUrl": "https://images.unsplash.com/photo-1598625873873-52f9aefd7d9d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzY0NDQ1NDk2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "testimonial-2",
+      "description": "Satisfied customer looking confident",
+      "imageUrl": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc2NDQ3MTgwMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "testimonial-3",
+      "description": "Another happy customer",
+      "imageUrl": "https://images.unsplash.com/photo-1508002366005-75a695ee2d17?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxoYXBweSUyMHBlcnNvbnxlbnwwfHx8fDE3NjQ1MTE0MjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "happy person"
+    },
+    {
+      "id": "gallery-1",
+      "description": "Interior of the Aurora Beauty Clinic reception",
+      "imageUrl": "https://images.unsplash.com/photo-1665231795856-769fb08a90bc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjbGluaWMlMjBpbnRlcmlvcnxlbnwwfHx8fDE3NjQ1MTI1Mjd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "clinic interior"
+    },
+    {
+      "id": "gallery-2",
+      "description": "A treatment room in the clinic",
+      "imageUrl": "https://images.unsplash.com/photo-1601841197690-6f0838bdb005?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx0cmVhdG1lbnQlMjByb29tfGVufDB8fHx8MTc2NDUxMjUyNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "treatment room"
+    },
+    {
+      "id": "gallery-3",
+      "description": "High-end beauty products on a shelf",
+      "imageUrl": "https://images.unsplash.com/photo-1580870069867-74c57ee1bb07?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxiZWF1dHklMjBwcm9kdWN0c3xlbnwwfHx8fDE3NjQ0NjgyMDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "beauty products"
+    },
+    {
+      "id": "gallery-4",
+      "description": "A satisfied customer post-treatment",
+      "imageUrl": "https://images.unsplash.com/photo-1579047917338-a6a69144fe63?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxoYXBweSUyMGNsaWVudHxlbnwwfHx8fDE3NjQ0MDQwMDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "happy client"
+    },
+    {
+      "id": "gallery-5",
+      "description": "Relaxing ambiance of the clinic's waiting area",
+      "imageUrl": "https://images.unsplash.com/photo-1759038086846-c97a8adfce98?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxsb3VuZ2UlMjBhcmVhfGVufDB8fHx8MTc2NDUxMjUyN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "lounge area"
+    },
+    {
+      "id": "gallery-6",
+      "description": "Another view of a treatment room",
+      "imageUrl": "https://images.unsplash.com/photo-1611920630905-426e08849c32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzcGElMjByb29tfGVufDB8fHx8MTc2NDUxMjUyN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "spa room"
+    },
+    {
+      "id": "gallery-7",
+      "description": "Close up of professional equipment",
+      "imageUrl": "https://images.unsplash.com/photo-1641877492086-771bc14a8e5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtZWRpY2FsJTIwZXF1aXBtZW50fGVufDB8fHx8MTc2NDQ5ODM0Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "medical equipment"
+    },
+    {
+      "id": "gallery-8",
+      "description": "The friendly staff at Aurora Beauty Clinic",
+      "imageUrl": "https://images.unsplash.com/photo-1758691462615-beafbf50bf3c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjbGluaWMlMjBzdGFmZnxlbnwwfHx8fDE3NjQ1MTI1Mjd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "clinic staff"
+    },
+    {
+      "id": "gallery-9",
+      "description": "The clinic's exterior facade",
+      "imageUrl": "https://images.unsplash.com/photo-1672506142658-eef14f61ec43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxidWlsZGluZyUyMGV4dGVyaW9yfGVufDB8fHx8MTc2NDUxMDY0M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "building exterior"
+    },
+    {
+      "id": "doctor-1",
+      "description": "Portrait of Dr. Evelyn Reed",
+      "imageUrl": "https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxkb2N0b3IlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjQ0OTM3NTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doctor portrait"
+    },
+    {
+      "id": "doctor-2",
+      "description": "Portrait of Dr. Sofia Chen",
+      "imageUrl": "https://images.unsplash.com/photo-1527613426441-4da17471b66d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxmZW1hbGUlMjBkb2N0b3J8ZW58MHx8fHwxNzY0NDk2OTg4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "female doctor"
+    },
+    {
+      "id": "about-clinic",
+      "description": "Wide shot of the clinic's luxurious and welcoming interior",
+      "imageUrl": "https://images.unsplash.com/photo-1621293954908-907159247fc8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxsdXh1cnklMjBpbnRlcmlvcnxlbnwwfHx8fDE3NjQzOTY0OTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "luxury interior"
+    },
+    {
+      "id": "contact-map",
+      "description": "Static map showing clinic location",
+      "imageUrl": "https://images.unsplash.com/photo-1619468129361-605ebea04b44?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjaXR5JTIwbWFwfGVufDB8fHx8MTc2NDUxMDIyNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city map"
+    }
+  ]
 }

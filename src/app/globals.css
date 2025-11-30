@@ -34,15 +34,15 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    /* SB Admin 2 Blue Sidebar Theme */
-    --sidebar-background: 227 68% 20%; /* Dark Blue */
-    --sidebar-foreground: 0 0% 100%; /* White */
-    --sidebar-primary: 227 68% 40%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 227 68% 30%; /* Lighter blue for hover/active */
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 227 68% 25%;
-    --sidebar-ring: 227 68% 50%;
+    /* Quixlab Sidebar Theme */
+    --sidebar-background: 250 75% 98%; /* Very light almost white-purple */
+    --sidebar-foreground: 240 5% 34%; /* Dark grey text */
+    --sidebar-primary: 250 75% 60%; /* The main purple-blue for the logo header */
+    --sidebar-primary-foreground: 0 0% 100%; /* White text for logo */
+    --sidebar-accent: 250 75% 94%; /* Lighter purple for hover/active */
+    --sidebar-accent-foreground: 250 75% 45%; /* Darker purple for active text */
+    --sidebar-border: 250 10% 90%;
+    --sidebar-ring: 250 75% 65%;
   }
   .dark {
     --background: 224 71% 4%;
@@ -70,15 +70,15 @@ body {
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     
-    /* SB Admin 2 Blue Sidebar Theme */
-    --sidebar-background: 227 68% 20%; /* Dark Blue */
-    --sidebar-foreground: 0 0% 100%; /* White */
-    --sidebar-primary: 227 68% 40%;
+    /* Dark Quixlab Sidebar Theme */
+    --sidebar-background: 240 5% 14%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 250 75% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 227 68% 30%; /* Lighter blue for hover/active */
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 227 68% 25%;
-    --sidebar-ring: 227 68% 50%;
+    --sidebar-accent: 240 5% 20%;
+    --sidebar-accent-foreground: 250 75% 70%;
+    --sidebar-border: 240 5% 25%;
+    --sidebar-ring: 250 75% 65%;
   }
 }
 

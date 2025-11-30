@@ -63,9 +63,9 @@ export default function AdminLayout({
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader>
-            <div className="flex items-center gap-2 font-bold text-2xl text-sidebar-primary-foreground px-2">
-                <span>Admin</span>
+        <SidebarHeader className="h-20 flex items-center justify-center bg-sidebar-primary">
+            <div className="text-2xl font-bold text-sidebar-primary-foreground">
+                Quixlab
             </div>
         </SidebarHeader>
         <SidebarContent>

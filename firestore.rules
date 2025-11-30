@@ -8,7 +8,7 @@
  *
  * Key Security Decisions:
  * - Public Read-Only Collections: /services and /testimonials are configured to be publicly readable by anyone. All write operations are denied.
- * - Public Create for Appointments: /appointments allows any client to create a new document. Read, update, and delete operations are denied to protect privacy.
+ * - Public Create for Appointments: /appointments allows any client to create a new document. Read/update/delete operations are denied for non-admins.
  * - Conditional Admin Creation: The /admins collection has the most restrictive rules. A new admin document can ONLY be created if the collection is currently empty.
  *   This ensures that only the very first admin can be registered. Once one admin exists, no new ones can be created from the client.
  * - Restricted Admin Data: Only authenticated admin users (those whose UID is in an /admins document) can read the list of admins.
@@ -49,10 +49,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description   Stores appointment data. Allows public creation but restricts read/update/delete.
+     * @description   Stores appointment data. Allows public creation. Admins can read.
      */
     match /appointments/{appointmentId} {
-      allow get, list, update, delete: if false;
+      allow get, list: if isAdmin();
+      allow update, delete: if false;
       allow create: if true;
     }
 

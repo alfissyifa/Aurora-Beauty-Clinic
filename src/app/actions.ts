@@ -3,6 +3,7 @@
 import * as z from "zod";
 import { initializeFirebase } from "@/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Nama harus diisi, minimal 2 karakter." }),
@@ -27,6 +28,7 @@ export async function bookAppointment(values: z.infer<typeof formSchema>) {
     
     await addDoc(appointmentsCollection, {
       ...validatedData.data,
+      date: validatedData.data.date.toISOString(),
       createdAt: serverTimestamp(),
     });
 
@@ -39,6 +41,9 @@ export async function bookAppointment(values: z.infer<typeof formSchema>) {
      if (error instanceof Error) {
       errorMessage = error.message;
     }
+     if (error instanceof FirestorePermissionError) {
+        errorMessage = error.message;
+     }
 
     return { success: false, message: errorMessage };
   }

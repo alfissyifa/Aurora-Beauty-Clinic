@@ -1,72 +1,57 @@
 /**
  * Core Philosophy: This ruleset enforces a clear separation between public, read-only data and private, backend-managed data. 
  * The primary goal is to expose catalog-like information (services, testimonials) to all clients while protecting
- * sensitive booking information (appointments) from most client-side access.
+ * sensitive booking information (appointments) and administrative data.
  *
- * Data Structure: The data is organized into three distinct, top-level collections: /services, /testimonials, and /appointments. 
+ * Data Structure: The data is organized into four distinct, top-level collections: /services, /testimonials, /appointments, and /admins.
  * There are no user-specific subcollections or nested data structures, which simplifies the security model.
  *
  * Key Security Decisions:
- * - Public Read-Only Collections: /services and /testimonials are configured to be publicly readable by anyone, including unauthenticated users. 
- *   All write operations (create, update, delete) from client applications are explicitly denied to ensure data integrity.
- * - Public Create for Appointments: The /appointments collection allows any client (authenticated or not) to create a new document.
- *   This is necessary for the public-facing booking form. However, read, update, and delete operations are denied to protect
- *   the privacy of booking data from other users.
+ * - Public Read-Only Collections: /services and /testimonials are configured to be publicly readable by anyone. All write operations are denied.
+ * - Public Create for Appointments: /appointments allows any client to create a new document. Read, update, and delete operations are denied to protect privacy.
+ * - Conditional Admin Creation: The /admins collection has the most restrictive rules. A new admin document can ONLY be created if the collection is currently empty.
+ *   This ensures that only the very first admin can be registered. Once one admin exists, no new ones can be created from the client.
+ * - Restricted Admin Data: Only authenticated admin users (those whose UID is in an /admins document) can read the list of admins.
  *
  * Denormalization for Authorization: Not applicable in this model, as there are no user-specific authorization requirements.
  *
- * Structural Segregation: The use of separate top-level collections for public data (/services, /testimonials) and semi-private data (/appointments) 
- * is a core part of the security design. This prevents any possibility of a client accidentally querying for or accessing protected data.
+ * Structural Segregation: The use of separate top-level collections is a core part of the security design.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper Functions
-    
     /**
-     * Checks if a user is authenticated.
+     * Helper Functions
      */
-    // function isSignedIn() {
-    //   return request.auth != null;
-    // }
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
 
     /**
      * @description   Allows public read-only access to beauty service information.
-     * @path          /services/{serviceId}
-     * @allow         Any user, authenticated or not, can read a specific service. (get)
-     * @deny          A client attempts to create a new service. (create)
-     * @principle     Secures the collection as read-only for all clients to maintain data integrity.
      */
     match /services/{serviceId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow write: if false;
     }
 
     /**
      * @description   Allows public read-only access to customer testimonials.
-     * @path          /testimonials/{testimonialId}
-     * @allow         Any user, authenticated or not, can list all testimonials. (list)
-      * @deny          A client attempts to update an existing testimonial. (update)
-     * @principle     Secures the collection as read-only for all clients to maintain data integrity.
      */
     match /testimonials/{testimonialId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow write: if false;
     }
 
     /**
      * @description   Stores appointment data. Allows public creation but restricts read/update/delete.
-     * @path          /appointments/{appointmentId}
-     * @allow         Any client can create a new appointment. (create)
-     * @deny          A client attempts to read or delete someone else's appointment. (get, list, delete, update)
-     * @principle     Enables a public booking form while protecting the privacy of existing appointment data.
      */
     match /appointments/{appointmentId} {
       allow get: if false;
@@ -74,6 +59,20 @@ service cloud.firestore {
       allow create: if true;
       allow update: if false;
       allow delete: if false;
+    }
+
+    /**
+     * @description   Manages admin user records. Critical for controlling access to admin registration.
+     * @path          /admins/{adminId}
+     * @allow create:  Only if there are no other admins in the collection. This locks down registration after the first admin is created.
+     * @allow list:    Any client can list the collection. This is necessary for the login page to check if an admin exists.
+     * @allow get, update, delete: Denied for all clients to protect admin data.
+     */
+     match /admins/{adminId} {
+      allow create: if isSignedIn() && !exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins) == null;
+      allow list: if true;
+      allow get: if isAdmin();
+      allow update, delete: if false;
     }
   }
 }

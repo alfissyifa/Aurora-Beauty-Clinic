@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -18,17 +19,112 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
+import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Format email tidak valid.' }),
   password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
 });
 
+function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) {
+  const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { email: '', password: '' },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      if (!firestore) throw new Error("Firestore is not initialized.");
+      
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const adminCollection = collection(firestore, "admins");
+      
+      await addDoc(adminCollection, {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        createdAt: serverTimestamp(),
+      });
+
+      toast({
+        title: 'Registrasi Berhasil!',
+        description: 'Akun admin pertama telah dibuat. Silakan login.',
+      });
+      onRegisterSuccess();
+    } catch (error: any) {
+       toast({
+        variant: 'destructive',
+        title: 'Oh tidak! Registrasi gagal.',
+        description: error.message || 'Terjadi kesalahan yang tidak diketahui.',
+      });
+    }
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email Admin Baru</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="admin@example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password Admin Baru</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="******" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? 'Mendaftarkan...' : 'Buat Akun Admin'}
+        </Button>
+      </form>
+    </Form>
+  )
+}
+
+
 export default function LoginPage() {
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
+
+  const adminsQuery = useMemoFirebase(() => {
+    return firestore ? collection(firestore, 'admins') : null;
+  }, [firestore]);
+
+  const { data: admins, isLoading: isAdminLoading } = useCollection(adminsQuery);
+  
+  const noAdminsExist = !isAdminLoading && admins && admins.length === 0;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -101,6 +197,33 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
+
+          {noAdminsExist && (
+             <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="w-full mt-4">Register Admin Pertama</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Registrasi Admin Pertama</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Karena belum ada admin yang terdaftar, Anda dapat membuat akun admin pertama untuk sistem ini.
+                    Setelah akun ini dibuat, opsi pendaftaran akan dinonaktifkan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <RegisterForm onRegisterSuccess={() => {
+                   const cancelButton = document.querySelector('[data-alert-dialog-cancel]');
+                   if (cancelButton instanceof HTMLElement) {
+                      cancelButton.click();
+                   }
+                }} />
+                <AlertDialogFooter>
+                   <AlertDialogCancel data-alert-dialog-cancel>Batal</AlertDialogCancel>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
         </CardContent>
       </Card>
     </div>

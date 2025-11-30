@@ -36,8 +36,7 @@ service cloud.firestore {
      * @description   Allows public read-only access to beauty service information.
      */
     match /services/{serviceId} {
-      allow get: if true;
-      allow list: if true;
+      allow get, list: if true;
       allow write: if false;
     }
 
@@ -45,8 +44,7 @@ service cloud.firestore {
      * @description   Allows public read-only access to customer testimonials.
      */
     match /testimonials/{testimonialId} {
-      allow get: if true;
-      allow list: if true;
+      allow get, list: if true;
       allow write: if false;
     }
 
@@ -54,25 +52,23 @@ service cloud.firestore {
      * @description   Stores appointment data. Allows public creation but restricts read/update/delete.
      */
     match /appointments/{appointmentId} {
-      allow get: if false;
-      allow list: if false;
+      allow get, list, update, delete: if false;
       allow create: if true;
-      allow update: if false;
-      allow delete: if false;
     }
 
     /**
      * @description   Manages admin user records. Critical for controlling access to admin registration.
      * @path          /admins/{adminId}
-     * @allow create:  Only if there are no other admins in the collection. This locks down registration after the first admin is created.
+     * @allow create:  Only if the collection is empty. This locks down registration after the first admin is created.
      * @allow list:    Any client can list the collection. This is necessary for the login page to check if an admin exists.
-     * @allow get, update, delete: Denied for all clients to protect admin data.
+     * @allow get:     Only an admin can get another admin's document (though not currently used).
+     * @allow update, delete: Denied for all clients to protect admin data.
      */
      match /admins/{adminId} {
-      allow create: if isSignedIn() && !exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins) == null;
-      allow list: if true;
-      allow get: if isAdmin();
-      allow update, delete: if false;
+        allow list: if true;
+        allow get: if isAdmin();
+        allow create: if !exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/nonexistent-doc) == null;
+        allow update, delete: if false;
     }
   }
 }

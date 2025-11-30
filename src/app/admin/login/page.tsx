@@ -63,39 +63,45 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const adminDocRef = doc(firestore, "admins", userCredential.user.uid);
       
-      setDoc(adminDocRef, {
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
-        createdAt: serverTimestamp(),
-      }).catch(async (error) => {
-         // This will catch the permission error if an admin already exists
-         toast({
+      try {
+        await setDoc(adminDocRef, {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          createdAt: serverTimestamp(),
+        });
+        
+        toast({
+          title: 'Registrasi Berhasil!',
+          description: 'Akun admin pertama telah dibuat. Silakan login.',
+        });
+        onRegisterSuccess();
+
+      } catch (firestoreError: any) {
+        // This will catch the permission error if an admin already exists
+        toast({
           variant: 'destructive',
           title: 'Oh tidak! Registrasi gagal.',
           description: "Seorang admin sudah terdaftar. Pendaftaran lebih lanjut tidak diizinkan.",
         });
+        // Create and emit a detailed error for debugging
         const permissionError = new FirestorePermissionError({
             path: `admins/${userCredential.user.uid}`,
             operation: 'create',
-            requestResourceData: { email: values.email },
+            requestResourceData: { uid: userCredential.user.uid, email: values.email },
         });
         errorEmitter.emit('permission-error', permissionError);
-        // Clean up the created user in Auth if Firestore write fails
+        
+        // IMPORTANT: Clean up the created user in Auth if Firestore write fails
+        // This prevents orphaned auth accounts.
         await userCredential.user.delete();
-      });
+      }
 
-      toast({
-        title: 'Registrasi Berhasil!',
-        description: 'Akun admin pertama telah dibuat. Silakan login.',
-      });
-      onRegisterSuccess();
-
-    } catch (error: any) {
+    } catch (authError: any) {
        // Catches errors from createUserWithEmailAndPassword (e.g., email-already-in-use)
        toast({
         variant: 'destructive',
         title: 'Oh tidak! Registrasi gagal.',
-        description: error.message || 'Terjadi kesalahan yang tidak diketahui.',
+        description: authError.message || 'Terjadi kesalahan yang tidak diketahui.',
       });
     }
   }

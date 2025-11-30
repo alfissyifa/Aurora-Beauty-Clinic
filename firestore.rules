@@ -67,7 +67,7 @@ service cloud.firestore {
      match /admins/{adminId} {
         allow list: if true;
         allow get: if isAdmin();
-        allow create: if !exists(/databases/$(database)/documents/admins);
+        allow create: if get(/databases/$(database)/documents/admins/$(request.auth.uid)) == null && size(get(/databases/$(database)/documents/admins).data) == 0;
         allow update, delete: if false;
     }
   }

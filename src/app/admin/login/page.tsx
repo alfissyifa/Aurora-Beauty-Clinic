@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/firestore';
+import { collection, serverTimestamp, setDoc, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -50,7 +50,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!firestore) {
+    if (!firestore || !auth) {
       toast({
         variant: "destructive",
         title: 'Oh tidak! Terjadi kesalahan.',
@@ -61,13 +61,27 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      // Use UID as the document ID for the admin user for easy lookup.
       const adminDocRef = doc(firestore, "admins", userCredential.user.uid);
       
-      await setDoc(adminDocRef, {
+      setDoc(adminDocRef, {
         uid: userCredential.user.uid,
         email: userCredential.user.email,
         createdAt: serverTimestamp(),
+      }).catch(async (error) => {
+         // This will catch the permission error if an admin already exists
+         toast({
+          variant: 'destructive',
+          title: 'Oh tidak! Registrasi gagal.',
+          description: "Seorang admin sudah terdaftar. Pendaftaran lebih lanjut tidak diizinkan.",
+        });
+        const permissionError = new FirestorePermissionError({
+            path: `admins/${userCredential.user.uid}`,
+            operation: 'create',
+            requestResourceData: { email: values.email },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        // Clean up the created user in Auth if Firestore write fails
+        await userCredential.user.delete();
       });
 
       toast({
@@ -75,20 +89,14 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         description: 'Akun admin pertama telah dibuat. Silakan login.',
       });
       onRegisterSuccess();
+
     } catch (error: any) {
+       // Catches errors from createUserWithEmailAndPassword (e.g., email-already-in-use)
        toast({
         variant: 'destructive',
         title: 'Oh tidak! Registrasi gagal.',
         description: error.message || 'Terjadi kesalahan yang tidak diketahui.',
       });
-      if (error.code && error.code.startsWith('permission-denied')) {
-        const permissionError = new FirestorePermissionError({
-          path: 'admins',
-          operation: 'create',
-          requestResourceData: { email: values.email },
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      }
     }
   }
 
@@ -153,6 +161,7 @@ export default function LoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if(!auth) return;
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({

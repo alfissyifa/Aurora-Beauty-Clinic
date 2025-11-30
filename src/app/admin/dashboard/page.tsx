@@ -4,8 +4,8 @@ import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppointmentsTable from './appointments-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { ShoppingCart, Users, Wallet, Heart } from 'lucide-react';
 
 const chartData = [

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +31,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Format email tidak valid.' }),
@@ -48,13 +50,21 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!firestore) {
+      toast({
+        variant: "destructive",
+        title: 'Oh tidak! Terjadi kesalahan.',
+        description: "Koneksi ke database gagal. Silakan coba lagi.",
+      });
+      return;
+    }
+
     try {
-      if (!firestore) throw new Error("Firestore is not initialized.");
-      
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      const adminCollection = collection(firestore, "admins");
+      // Use UID as the document ID for the admin user for easy lookup.
+      const adminDocRef = doc(firestore, "admins", userCredential.user.uid);
       
-      await addDoc(adminCollection, {
+      await setDoc(adminDocRef, {
         uid: userCredential.user.uid,
         email: userCredential.user.email,
         createdAt: serverTimestamp(),
@@ -71,6 +81,14 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         title: 'Oh tidak! Registrasi gagal.',
         description: error.message || 'Terjadi kesalahan yang tidak diketahui.',
       });
+      if (error.code && error.code.startsWith('permission-denied')) {
+        const permissionError = new FirestorePermissionError({
+          path: 'admins',
+          operation: 'create',
+          requestResourceData: { email: values.email },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      }
     }
   }
 

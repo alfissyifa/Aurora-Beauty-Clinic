@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,10 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { services } from "@/lib/data";
-import { bookAppointment } from "@/app/actions";
+import { useFirebase } from "@/firebase";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { errorEmitter } from "@/firebase/error-emitter";
+
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Nama harus diisi, minimal 2 karakter." }),
@@ -47,6 +51,8 @@ const formSchema = z.object({
 
 export default function BookingForm() {
   const { toast } = useToast();
+  const { firestore } = useFirebase();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -58,20 +64,45 @@ export default function BookingForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const result = await bookAppointment(values);
+    if (!firestore) {
+        toast({
+            variant: "destructive",
+            title: "Oh tidak! Terjadi kesalahan.",
+            description: "Koneksi ke database gagal. Silakan coba lagi.",
+        });
+        return;
+    }
 
-    if (result.success) {
+    try {
+      const appointmentsCollection = collection(firestore, "appointments");
+      await addDoc(appointmentsCollection, {
+        ...values,
+        date: values.date.toISOString(),
+        createdAt: serverTimestamp(),
+      });
+
       toast({
         title: "Booking Berhasil!",
         description: `Terima kasih, ${values.name}. Kami akan segera menghubungi Anda untuk konfirmasi.`,
       });
       form.reset();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Oh tidak! Terjadi kesalahan.",
-        description: result.message || "Gagal mengirimkan formulir. Silakan coba lagi.",
-      });
+    } catch (error) {
+       let errorMessage = "Gagal mengirimkan formulir, silahkan coba lagi.";
+       if (error instanceof Error) {
+           errorMessage = error.message;
+       }
+
+       toast({
+         variant: "destructive",
+         title: "Oh tidak! Terjadi kesalahan.",
+         description: errorMessage,
+       });
+
+       if (error instanceof FirestorePermissionError) {
+         errorEmitter.emit('permission-error', error);
+       } else {
+         console.error("Booking failed:", error);
+       }
     }
   }
 

@@ -1,9 +1,6 @@
 "use server";
 
 import * as z from "zod";
-import { initializeFirebase } from "@/firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { FirestorePermissionError } from "@/firebase/errors";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Nama harus diisi, minimal 2 karakter." }),
@@ -14,6 +11,7 @@ const formSchema = z.object({
   note: z.string().optional(),
 });
 
+// This is a placeholder function. The actual logic is moved to the client component.
 export async function bookAppointment(values: z.infer<typeof formSchema>) {
   const validatedData = formSchema.safeParse(values);
 
@@ -21,30 +19,10 @@ export async function bookAppointment(values: z.infer<typeof formSchema>) {
     const errorMessages = validatedData.error.errors.map((e) => e.message).join(", ");
     return { success: false, message: `Validasi gagal: ${errorMessages}` };
   }
-
-  try {
-    const { firestore } = initializeFirebase();
-    const appointmentsCollection = collection(firestore, "appointments");
-    
-    await addDoc(appointmentsCollection, {
-      ...validatedData.data,
-      date: validatedData.data.date.toISOString(),
-      createdAt: serverTimestamp(),
-    });
-
-    return { success: true, message: "Booking successful!" };
-
-  } catch (error) {
-    console.error("Booking failed:", error);
-
-    let errorMessage = "Terjadi kesalahan tak terduga di server.";
-     if (error instanceof Error) {
-      errorMessage = error.message;
-    }
-     if (error instanceof FirestorePermissionError) {
-        errorMessage = error.message;
-     }
-
-    return { success: false, message: errorMessage };
-  }
+  
+  // The actual Firestore logic will be handled on the client-side
+  // to avoid server/client boundary issues.
+  // This server action now only serves for validation if needed, but we will
+  // perform the write operation directly from the client component.
+  return { success: true, message: "Data divalidasi. Mengirim ke Firestore..." };
 }

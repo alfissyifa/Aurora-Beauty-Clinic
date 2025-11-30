@@ -119,7 +119,7 @@ export default function AdminLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="bg-white">
-        <header className='flex items-center justify-between gap-4 border-b p-3 h-20 bg-card'>
+        <header className='flex items-center justify-between gap-4 p-3 h-20 bg-card shadow-md'>
             <div className="flex items-center gap-2">
                 <SidebarTrigger />
                 <div className="relative hidden md:block">

@@ -61,6 +61,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Card, CardContent } from '@/components/ui/card';
 
 // Schema for the Service object in Firestore
 const serviceSchema = z.object({
@@ -281,74 +282,78 @@ export default function ServicesManagementPage() {
         </Dialog>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Judul Layanan</TableHead>
-            <TableHead>Harga</TableHead>
-            <TableHead>Deskripsi</TableHead>
-            <TableHead className="text-right">Aksi</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading && Array.from({ length: 3 }).map((_, i) => (
-            <TableRow key={i}>
-                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-full" /></TableCell>
-                <TableCell className='text-right'><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
-            </TableRow>
-          ))}
-          {!isLoading && services?.map((service) => (
-            <TableRow key={service.id}>
-              <TableCell className="font-medium">{service.title}</TableCell>
-              <TableCell>{formatPrice(service.price)}</TableCell>
-              <TableCell className="max-w-md truncate">{service.description}</TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="icon" onClick={() => { setEditingService(service); setIsFormOpen(true); }}>
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                        <Trash className="h-4 w-4" />
-                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tindakan ini tidak dapat dibatalkan. Ini akan menghapus layanan
-                        "{service.title}" secara permanen.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Batal</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDelete(service)}>
-                        Ya, Hapus
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </TableCell>
-            </TableRow>
-          ))}
-           {!isLoading && services?.length === 0 && (
-            <TableRow>
-                <TableCell colSpan={4} className="text-center h-24">
-                    Belum ada layanan yang ditambahkan.
-                </TableCell>
-            </TableRow>
-        )}
-        {error && (
-             <TableRow>
-                <TableCell colSpan={4} className="text-center h-24 text-destructive">
-                    Gagal memuat data: {error.message}
-                </TableCell>
-            </TableRow>
-        )}
-        </TableBody>
-      </Table>
+      <Card className="shadow-lg">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Judul Layanan</TableHead>
+                <TableHead>Harga</TableHead>
+                <TableHead>Deskripsi</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading && Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                    <TableCell className='text-right'><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && services?.map((service) => (
+                <TableRow key={service.id}>
+                  <TableCell className="font-medium">{service.title}</TableCell>
+                  <TableCell>{formatPrice(service.price)}</TableCell>
+                  <TableCell className="max-w-md truncate">{service.description}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => { setEditingService(service); setIsFormOpen(true); }}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                            <Trash className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus layanan
+                            "{service.title}" secara permanen.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Batal</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(service)}>
+                            Ya, Hapus
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && services?.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={4} className="text-center h-24">
+                        Belum ada layanan yang ditambahkan.
+                    </TableCell>
+                </TableRow>
+            )}
+            {error && (
+                <TableRow>
+                    <TableCell colSpan={4} className="text-center h-24 text-destructive">
+                        Gagal memuat data: {error.message}
+                    </TableCell>
+                </TableRow>
+            )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

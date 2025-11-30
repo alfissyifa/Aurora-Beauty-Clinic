@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default function AppointmentsPage() {
   return (
     <div className="p-4 md:p-8 space-y-6">
-      <Card>
+      <Card className='shadow-lg'>
           <CardHeader>
             <CardTitle>Data Janji Temu</CardTitle>
             <CardDescription>

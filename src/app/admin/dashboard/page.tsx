@@ -100,7 +100,7 @@ function AdminDashboard() {
       </div>
 
       {/* Chart */}
-       <Card>
+       <Card className='shadow-lg'>
           <CardHeader>
             <CardTitle>Ringkasan Janji Temu</CardTitle>
           </CardHeader>

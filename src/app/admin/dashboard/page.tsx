@@ -4,9 +4,11 @@ import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppointmentsTable from './appointments-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AreaChart, Area, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts';
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { ShoppingCart, Users, Wallet, Heart } from 'lucide-react';
+import { AreaChart, Area, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ShoppingCart, Users, Wallet, Heart, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const chartData = [
   { month: "Januari", appointments: 186 },
@@ -124,7 +126,7 @@ function AdminDashboard() {
                   axisLine={false}
                   tickMargin={8}
                 />
-                <ChartTooltip
+                <Tooltip
                   cursor={false}
                   content={<ChartTooltipContent indicator="dot" />}
                 />
@@ -142,8 +144,15 @@ function AdminDashboard() {
       
       {/* Appointments Table */}
       <div className='mt-8'>
-        <h2 className="text-2xl font-bold mb-4">Janji Temu Terbaru</h2>
-        <AppointmentsTable />
+        <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">Janji Temu Terbaru</h2>
+            <Button asChild variant="link">
+                <Link href="/admin/appointments">
+                    Lihat Semua <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
+        </div>
+        <AppointmentsTable limit={5} />
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, limit as firestoreLimit } from 'firebase/firestore';
 import {
   Table,
   TableBody,
@@ -41,14 +41,17 @@ const AppointmentRowSkeleton = () => (
     </TableRow>
 );
 
-export default function AppointmentsTable() {
+export default function AppointmentsTable({ limit }: { limit?: number }) {
   const firestore = useFirestore();
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Order by creation date, newest first
-    return query(collection(firestore, 'appointments'), orderBy('createdAt', 'desc'));
-  }, [firestore]);
+    const baseQuery = query(collection(firestore, 'appointments'), orderBy('createdAt', 'desc'));
+    if (limit) {
+      return query(baseQuery, firestoreLimit(limit));
+    }
+    return baseQuery;
+  }, [firestore, limit]);
 
   const { data: appointments, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
 
@@ -80,7 +83,7 @@ export default function AppointmentsTable() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {isLoading && Array.from({ length: 5 }).map((_, i) => <AppointmentRowSkeleton key={i} />)}
+        {isLoading && Array.from({ length: limit || 5 }).map((_, i) => <AppointmentRowSkeleton key={i} />)}
         
         {!isLoading && appointments?.map((apt) => (
           <TableRow key={apt.id}>

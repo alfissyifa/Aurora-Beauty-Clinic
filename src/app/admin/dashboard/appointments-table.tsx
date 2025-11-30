@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { useFirestore } from '@/firebase';
-import { collection, query, orderBy, limit, startAfter, endBefore, limitToLast, getDocs, where, Query, DocumentData, Timestamp, QueryDocumentSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import React from 'react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -10,12 +10,11 @@ import { DataTable } from '@/components/data-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Check, Trash, X } from 'lucide-react';
+import { Check, Trash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-
 
 interface Appointment {
   id: string;
@@ -39,79 +38,16 @@ const AppointmentRowSkeleton = () => (
     </div>
 );
 
-export default function AppointmentsTable({ limit: initialLimit, status }: { limit?: number, status?: 'pending' | 'processed' }) {
+export default function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [data, setData] = useState<Appointment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
 
-  // Pagination state
-  const [pageSize, setPageSize] = useState(initialLimit || 10);
-  const [filter, setFilter] = useState('');
-  const [sort, setSort] = useState<{ id: string; desc: boolean } | null>(
-    status ? null : { id: 'createdAt', desc: true }
-  );
-  
-  // For pagination cursor
-  const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [page, setPage] = useState(0); // 0-indexed page
+  const appointmentsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'appointments'), where('status', '==', status));
+  }, [firestore, status]);
 
-  const fetchData = async (
-    { pageIndex, pageSize: newPageSize, newFilter, newSort, direction }: 
-    { pageIndex: number, pageSize: number, newFilter: string, newSort: {id: string, desc: boolean} | null, direction?: 'next' | 'prev' | 'none' }
-  ) => {
-    if (!firestore) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-        let q: Query<DocumentData> = collection(firestore, 'appointments');
-
-        if (status) {
-          q = query(q, where('status', '==', status));
-        } else if (newSort) {
-          q = query(q, orderBy(newSort.id, newSort.desc ? 'desc' : 'asc'));
-        }
-
-        if (direction === 'next' && lastVisible) {
-            q = query(q, startAfter(lastVisible));
-        } else if (direction === 'prev' && firstVisible) {
-             q = query(q, endBefore(firstVisible), limitToLast(newPageSize));
-        }
-        
-        q = query(q, limit(newPageSize));
-        
-        if (newFilter) {
-            q = query(q, where('name', '>=', newFilter), where('name', '<=', newFilter + '\uf8ff'));
-        }
-
-      const docSnap = await getDocs(q);
-      const appointments: Appointment[] = docSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Appointment));
-
-      setData(appointments);
-      setFirstVisible(docSnap.docs[0] || null);
-      setLastVisible(docSnap.docs[docSnap.docs.length - 1] || null);
-
-      if (direction === 'prev') {
-          setPage(pageIndex > 0 ? pageIndex - 1 : 0);
-      } else if (direction === 'next') {
-          setPage(pageIndex + 1);
-      } else {
-          setPage(0);
-      }
-
-
-    } catch (e: any) {
-      console.error("Error fetching appointments:", e);
-      setError(e);
-      setData([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data, isLoading, error, refetch } = useCollection<Appointment>(appointmentsQuery);
 
   const handleStatusChange = async (id: string, newStatus: 'processed') => {
     if (!firestore) return;
@@ -122,8 +58,7 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         title: "Status Diperbarui",
         description: `Janji temu telah dipindahkan ke "Sudah Dibaca".`
       });
-      // Refetch data for the current view
-      fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort, direction: 'none' });
+      // The useCollection hook should update automatically, but a manual refetch can be an option if needed
     } catch (e: any) {
        toast({
         variant: "destructive",
@@ -149,7 +84,6 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         title: "Janji Temu Dihapus",
         description: `Janji temu telah berhasil dihapus.`
       });
-      fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort, direction: 'none' });
     } catch (e: any) {
        toast({
         variant: "destructive",
@@ -273,41 +207,29 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
     },
   ];
 
-  useEffect(() => {
-    fetchData({ pageIndex: 0, pageSize, newFilter: filter, newSort: sort, direction: 'none' });
-  }, [firestore, pageSize, filter, sort, status]); // Refetch on changes, including status
-  
-  const handleNextPage = () => {
-    fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort, direction: 'next' });
-  };
-
-  const handlePrevPage = () => {
-     fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort, direction: 'prev' });
-  };
-  
-  if (isLoading && data.length === 0) {
+  if (isLoading) {
       return <AppointmentRowSkeleton />;
+  }
+
+  if (error) {
+    return <div className='text-center text-destructive p-4'>Error: {error.message}</div>
   }
 
   return (
     <DataTable
         columns={columns}
-        data={data}
+        data={data ?? []} // Use the data from useCollection hook
         isLoading={isLoading}
-        onFilterChange={setFilter}
-        onSortChange={(id, desc) => {
-            if (status) return; // Disable sorting when a status is selected
-            setSort({id, desc})
-        }}
-        onPageSizeChange={setPageSize}
-        pageSize={pageSize}
-        onNextPage={handleNextPage}
-        onPrevPage={handlePrevPage}
-        canNextPage={data.length === pageSize}
-        canPrevPage={page > 0}
-        pageIndex={page}
+        // Simplified props, pagination and filtering are disabled for now
+        onFilterChange={() => {}}
+        onSortChange={() => {}}
+        onPageSizeChange={() => {}}
+        pageSize={data?.length || 10}
+        onNextPage={() => {}}
+        onPrevPage={() => {}}
+        canNextPage={false}
+        canPrevPage={false}
+        pageIndex={0}
     />
   );
 }
-
-    

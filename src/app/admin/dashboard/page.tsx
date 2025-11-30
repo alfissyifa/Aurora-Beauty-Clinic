@@ -3,12 +3,14 @@
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppointmentsTable from './appointments-table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AreaChart, Area, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ShoppingCart, Users, Wallet, Heart, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const chartData = [
   { month: "Januari", appointments: 186 },
@@ -143,17 +145,24 @@ function AdminDashboard() {
         </Card>
       
       {/* Appointments Table */}
-      <div className='mt-8'>
-        <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold">Janji Temu Terbaru</h2>
-            <Button asChild variant="link">
-                <Link href="/admin/appointments">
-                    Lihat Semua <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-            </Button>
-        </div>
-        <AppointmentsTable limit={5} />
-      </div>
+      <Card className='shadow-lg'>
+        <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Janji Temu Terbaru</CardTitle>
+                <CardDescription>Daftar janji temu yang perlu diproses.</CardDescription>
+              </div>
+                <Button asChild variant="link">
+                    <Link href="/admin/appointments">
+                        Lihat Semua <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
+            </div>
+        </CardHeader>
+        <CardContent>
+           <AppointmentsTable status="pending" />
+        </CardContent>
+      </Card>
     </div>
   );
 }

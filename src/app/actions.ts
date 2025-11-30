@@ -3,6 +3,7 @@
 import * as z from "zod";
 import { initializeFirebase } from "@/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 const formSchema = z.object({
@@ -15,28 +16,31 @@ const formSchema = z.object({
 });
 
 export async function bookAppointment(values: z.infer<typeof formSchema>) {
+  const validatedData = formSchema.safeParse(values);
+
+  if (!validatedData.success) {
+    return { success: false, message: "Validation failed", errors: validatedData.error.errors };
+  }
+
   try {
-    const validatedData = formSchema.parse(values);
     const { firestore } = initializeFirebase();
     const appointmentsCollection = collection(firestore, "appointments");
-
+    
     await addDoc(appointmentsCollection, {
-      ...validatedData,
+      ...validatedData.data,
       createdAt: serverTimestamp(),
     });
 
     return { success: true, message: "Booking successful!" };
+
   } catch (error) {
     console.error("Booking failed:", error);
-
-    if (error instanceof z.ZodError) {
-      return { success: false, message: "Validation failed", errors: error.errors };
-    }
     
-    let errorMessage = "An unexpected error occurred.";
-    if (error instanceof FirestorePermissionError) {
-      errorMessage = error.message;
-    } else if (error instanceof Error) {
+    // Ini adalah fallback. Idealnya, error permission akan ditangani di sisi client
+    // melalui error emitter. Namun, untuk memastikan formulir tidak macet,
+    // kita kembalikan pesan error umum.
+    let errorMessage = "An unexpected error occurred on the server.";
+     if (error instanceof Error) {
       errorMessage = error.message;
     }
 

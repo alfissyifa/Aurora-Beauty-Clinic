@@ -55,44 +55,44 @@ function AdminDashboard() {
 
       {/* Stat Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <ShoppingCart className="h-4 w-4 text-white/80" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">1,250</div>
-            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+            <p className="text-xs text-white/80">+20.1% from last month</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-pink-500 to-red-500 text-white shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Potential Revenue</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
+            <Wallet className="h-4 w-4 text-white/80" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Rp 45.23M</div>
-            <p className="text-xs text-muted-foreground">+180.1% from last month</p>
+            <p className="text-xs text-white/80">+180.1% from last month</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">New Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-white/80" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+235</div>
-            <p className="text-xs text-muted-foreground">+30% from last month</p>
+            <p className="text-xs text-white/80">+30% from last month</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Customer Satisfaction</CardTitle>
-            <Heart className="h-4 w-4 text-muted-foreground" />
+            <Heart className="h-4 w-4 text-white/80" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">98%</div>
-            <p className="text-xs text-muted-foreground">+2% from last month</p>
+            <p className="text-xs text-white/80">+2% from last month</p>
           </CardContent>
         </Card>
       </div>

@@ -31,6 +31,11 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+               <li>
+                  <Link href="/admin/login" className="text-muted-foreground hover:text-foreground transition-colors">
+                    Admin Login
+                  </Link>
+                </li>
             </ul>
           </div>
           <div>

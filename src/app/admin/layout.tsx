@@ -35,7 +35,7 @@ export default function AdminLayout({
   const auth = useAuth();
 
   const navItems = [
-    { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/dashboard', label: 'Dasbor', icon: LayoutDashboard },
     { href: '/admin/services', label: 'Layanan', icon: ShoppingCart },
   ];
 
@@ -123,17 +123,17 @@ export default function AdminLayout({
                 <SidebarTrigger />
                 <div className="relative hidden md:block">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search Dashboard" className="pl-9 w-64" />
+                    <Input placeholder="Cari Dasbor" className="pl-9 w-64" />
                 </div>
             </div>
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" className="rounded-full">
                     <Bell className="h-5 w-5" />
-                    <span className="sr-only">Notifications</span>
+                    <span className="sr-only">Notifikasi</span>
                 </Button>
                 <Button variant="ghost" size="icon" className="rounded-full">
                     <MessageSquare className="h-5 w-5" />
-                    <span className="sr-only">Messages</span>
+                    <span className="sr-only">Pesan</span>
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -156,20 +156,20 @@ export default function AdminLayout({
                         <DropdownMenuSeparator />
                         <DropdownMenuItem>
                             <UserIcon className="mr-2 h-4 w-4" />
-                            <span>Profile</span>
+                            <span>Profil</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                             <Mail className="mr-2 h-4 w-4" />
-                            <span>Inbox</span>
+                            <span>Kotak Masuk</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                             <Settings className="mr-2 h-4 w-4" />
-                            <span>Settings</span>
+                            <span>Pengaturan</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleLogout}>
                             <LogOut className="mr-2 h-4 w-4" />
-                            <span>Log out</span>
+                            <span>Keluar</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

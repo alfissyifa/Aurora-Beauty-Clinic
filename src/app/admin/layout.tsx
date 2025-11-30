@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, LogOut, Search, Bell, MessageSquare, User as UserIcon, Settings, Mail, Sparkles, Home, BriefcaseBusiness, Info, Phone, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, LogOut, Search, Bell, MessageSquare, User as UserIcon, Settings, Mail, Sparkles, Home, BriefcaseBusiness, Info, Phone, ShoppingCart, CalendarClock } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 
 import {
@@ -36,6 +36,7 @@ export default function AdminLayout({
 
   const navItems = [
     { href: '/admin/dashboard', label: 'Dasbor', icon: LayoutDashboard },
+    { href: '/admin/dashboard', label: 'Janji Temu', icon: CalendarClock },
     { href: '/admin/services', label: 'Layanan', icon: ShoppingCart },
   ];
 
@@ -86,7 +87,7 @@ export default function AdminLayout({
         <SidebarContent>
           <SidebarMenu>
             {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
+                <SidebarMenuItem key={item.href + item.label}>
                     <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
                         <item.icon />
                         {item.label}

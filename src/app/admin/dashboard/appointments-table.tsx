@@ -70,10 +70,14 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
 
         if (status) {
             q = query(q, where('status', '==', status));
+            // IMPORTANT: When filtering by status, we CANNOT reliably sort by another field
+            // without a composite index. To avoid the index error, we remove dynamic sorting here.
+            // We'll rely on the default ordering or a simple orderBy on the status field itself.
+             q = query(q, orderBy('createdAt', 'desc')); 
+        } else {
+             // Sorting is only applied when not filtering by status to avoid index errors.
+             q = query(q, orderBy(newSort.id, newSort.desc ? 'desc' : 'asc'));
         }
-
-        // Always sort by createdAt descending as the primary sort order
-        q = query(q, orderBy(newSort.id, newSort.desc ? 'desc' : 'asc'));
 
         if (direction === 'next' && lastVisible) {
             q = query(q, startAfter(lastVisible));
@@ -86,7 +90,6 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         // Note: Filtering by name requires an additional index if combined with other orderBy clauses
         // For simplicity, this example might require a name_lowercase field and index in a real app.
         if (newFilter) {
-             // This simple filter works best with an exact match or prefix, not ideal for substrings.
             q = query(q, where('name', '>=', newFilter), where('name', '<=', newFilter + '\uf8ff'));
         }
 

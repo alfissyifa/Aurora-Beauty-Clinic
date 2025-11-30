@@ -2,6 +2,7 @@
 
 import AppointmentsTable from '../dashboard/appointments-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AppointmentsPage() {
   return (
@@ -14,7 +15,18 @@ export default function AppointmentsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <AppointmentsTable />
+            <Tabs defaultValue="pending">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="pending">Belum Dibaca</TabsTrigger>
+                <TabsTrigger value="processed">Sudah Dibaca</TabsTrigger>
+              </TabsList>
+              <TabsContent value="pending" className="mt-4">
+                <AppointmentsTable status="pending" />
+              </TabsContent>
+              <TabsContent value="processed" className="mt-4">
+                <AppointmentsTable status="processed" />
+              </TabsContent>
+            </Tabs>
           </CardContent>
       </Card>
     </div>

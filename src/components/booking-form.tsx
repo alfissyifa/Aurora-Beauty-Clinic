@@ -93,6 +93,7 @@ export default function BookingForm() {
         ...values,
         date: values.date.toISOString(),
         createdAt: serverTimestamp(),
+        status: 'pending', // Default status for new appointments
       });
 
       toast({

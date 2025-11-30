@@ -2,13 +2,20 @@
 
 import React, { useState, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, query, orderBy, limit, startAfter, endBefore, limitToLast, getDocs, where, Query, DocumentData, Timestamp, QueryDocumentSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, startAfter, endBefore, limitToLast, getDocs, where, Query, DocumentData, Timestamp, QueryDocumentSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 import { DataTable } from '@/components/data-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Check, Trash, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 interface Appointment {
   id: string;
@@ -18,52 +25,9 @@ interface Appointment {
   service: string;
   date: string; // ISO string
   note: string;
+  status: 'pending' | 'processed';
   createdAt: Timestamp;
 }
-
-const columns = [
-  {
-    accessorKey: "name",
-    header: "Nama Pelanggan",
-    cell: ({ row }: any) => <div className="font-medium">{row.getValue("name")}</div>,
-  },
-  {
-    accessorKey: "contact",
-    header: "Kontak",
-    cell: ({ row }: any) => (
-      <div>
-        <div>{row.original.phone}</div>
-        <div className="text-xs text-muted-foreground">{row.original.email}</div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "service",
-    header: "Layanan",
-    cell: ({ row }: any) => <Badge variant="secondary">{row.getValue("service")}</Badge>,
-  },
-  {
-    accessorKey: "date",
-    header: "Tgl Konsultasi",
-    cell: ({ row }: any) => {
-        try {
-            return format(new Date(row.getValue("date")), "eeee, dd MMMM yyyy", { locale: id });
-        } catch (e) {
-            return 'Invalid Date';
-        }
-    },
-  },
-    {
-    accessorKey: "createdAt",
-    header: "Tgl Booking",
-    cell: ({ row }: any) => {
-        const timestamp = row.getValue("createdAt") as Timestamp;
-        if (!timestamp?.seconds) return 'N/A';
-        return format(new Date(timestamp.seconds * 1000), "dd MMM yyyy, HH:mm");
-    },
-  },
-];
-
 
 const AppointmentRowSkeleton = () => (
     <div className="space-y-2">
@@ -75,8 +39,9 @@ const AppointmentRowSkeleton = () => (
     </div>
 );
 
-export default function AppointmentsTable({ limit: initialLimit }: { limit?: number }) {
+export default function AppointmentsTable({ limit: initialLimit, status }: { limit?: number, status?: 'pending' | 'processed' }) {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [data, setData] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -91,7 +56,6 @@ export default function AppointmentsTable({ limit: initialLimit }: { limit?: num
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [page, setPage] = useState(0); // 0-indexed page
 
-
   const fetchData = async (
     { pageIndex, pageSize: newPageSize, newFilter, newSort, direction }: 
     { pageIndex: number, pageSize: number, newFilter: string, newSort: {id: string, desc: boolean}, direction?: 'next' | 'prev' | 'none' }
@@ -102,29 +66,24 @@ export default function AppointmentsTable({ limit: initialLimit }: { limit?: num
     setError(null);
 
     try {
-        const appointmentsCollection = collection(firestore, 'appointments');
-        let q: Query<DocumentData>;
+        let q = collection(firestore, 'appointments') as Query<DocumentData>;
+
+        // Always filter by status if provided
+        if (status) {
+            q = query(q, where('status', '==', status));
+        }
 
         const order = orderBy(newSort.id, newSort.desc ? 'desc' : 'asc');
+        q = query(q, order);
         
-        let pagination;
         if (direction === 'next' && lastVisible) {
-            pagination = startAfter(lastVisible);
+            q = query(q, startAfter(lastVisible));
         } else if (direction === 'prev' && firstVisible) {
-             q = query(appointmentsCollection, order, endBefore(firstVisible), limitToLast(newPageSize));
-             // For 'prev', we don't need another cursor
-        } else {
-            q = query(appointmentsCollection, order, limit(newPageSize));
-        }
-
-        if (pagination) {
-            q = query(appointmentsCollection, order, pagination, limit(newPageSize));
-        } else if (!q) {
-            q = query(appointmentsCollection, order, limit(newPageSize));
+             q = query(q, endBefore(firstVisible), limitToLast(newPageSize));
         }
         
-        // Basic filter by name - case-insensitive would require more complex setup
-        // For simplicity, we filter where name is >= search text.
+        q = query(q, limit(newPageSize));
+        
         if (newFilter) {
             q = query(q, where('name', '>=', newFilter), where('name', '<=', newFilter + '\uf8ff'));
         }
@@ -144,7 +103,6 @@ export default function AppointmentsTable({ limit: initialLimit }: { limit?: num
           setPage(0);
       }
 
-
     } catch (e: any) {
       console.error("Error fetching appointments:", e);
       setError(e);
@@ -154,9 +112,154 @@ export default function AppointmentsTable({ limit: initialLimit }: { limit?: num
     }
   };
 
+  const handleStatusChange = async (id: string, newStatus: 'processed') => {
+    if (!firestore) return;
+    const docRef = doc(firestore, 'appointments', id);
+    try {
+      await updateDoc(docRef, { status: newStatus });
+      toast({
+        title: "Status Diperbarui",
+        description: `Janji temu telah dipindahkan ke "Sudah Dibaca".`
+      });
+      // Refetch data for the current view
+      fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort });
+    } catch (e: any) {
+       toast({
+        variant: "destructive",
+        title: "Gagal Memperbarui",
+        description: e.message || "Tidak dapat memperbarui status janji temu."
+       });
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: { status: newStatus },
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!firestore) return;
+    const docRef = doc(firestore, 'appointments', id);
+    try {
+      await deleteDoc(docRef);
+      toast({
+        title: "Janji Temu Dihapus",
+        description: `Janji temu telah berhasil dihapus.`
+      });
+      fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort });
+    } catch (e: any) {
+       toast({
+        variant: "destructive",
+        title: "Gagal Menghapus",
+        description: e.message || "Tidak dapat menghapus janji temu."
+       });
+       const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete'
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    }
+  };
+
+  const columns = [
+    {
+      accessorKey: "name",
+      header: "Nama Pelanggan",
+      cell: ({ row }: any) => <div className="font-medium">{row.getValue("name")}</div>,
+    },
+    {
+      accessorKey: "contact",
+      header: "Kontak",
+      cell: ({ row }: any) => (
+        <div>
+          <div>{row.original.phone}</div>
+          <div className="text-xs text-muted-foreground">{row.original.email}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "service",
+      header: "Layanan",
+      cell: ({ row }: any) => <Badge variant="secondary">{row.getValue("service")}</Badge>,
+    },
+    {
+      accessorKey: "date",
+      header: "Tgl Konsultasi",
+      cell: ({ row }: any) => {
+          try {
+              return format(new Date(row.getValue("date")), "eeee, dd MMMM yyyy", { locale: id });
+          } catch (e) {
+              return 'Invalid Date';
+          }
+      },
+    },
+      {
+      accessorKey: "createdAt",
+      header: "Tgl Booking",
+      cell: ({ row }: any) => {
+          const timestamp = row.getValue("createdAt") as Timestamp;
+          if (!timestamp?.seconds) return 'N/A';
+          return format(new Date(timestamp.seconds * 1000), "dd MMM yyyy, HH:mm");
+      },
+    },
+    {
+      id: "actions",
+      header: "Aksi",
+      cell: ({ row }: any) => {
+        const appointment = row.original as Appointment;
+        return (
+          <div className='flex gap-2 justify-center'>
+            {appointment.status === 'pending' && (
+               <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm"><Check className="h-4 w-4 mr-2" /> Proses</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Konfirmasi Proses Janji Temu</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Anda yakin ingin memproses janji temu untuk <strong>{appointment.name}</strong>? Tindakan ini akan memindahkan janji temu ke tab "Sudah Dibaca".
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleStatusChange(appointment.id, 'processed')}>
+                        Ya, Proses
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+            )}
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon"><Trash className="h-4 w-4" /></Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apakah Anda yakin ingin menghapus janji temu ini secara permanen? Tindakan ini tidak dapat dibatalkan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => handleDelete(appointment.id)}>
+                    Ya, Hapus
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )
+      }
+    },
+  ];
+
   React.useEffect(() => {
-    fetchData({ pageIndex: 0, pageSize, newFilter: filter, newSort: sort });
-  }, [firestore, pageSize, filter, sort]); // Refetch on changes
+    fetchData({ pageIndex: 0, pageSize, newFilter: filter, newSort: sort, direction: 'none' });
+  }, [firestore, pageSize, filter, sort, status]); // Refetch on changes, including status
   
   const handleNextPage = () => {
     fetchData({ pageIndex: page, pageSize, newFilter: filter, newSort: sort, direction: 'next' });

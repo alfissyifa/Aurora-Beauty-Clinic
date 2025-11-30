@@ -114,6 +114,11 @@
           "type": "string",
           "description": "Additional notes or comments from the customer."
         },
+        "status": {
+            "type": "string",
+            "description": "The processing status of the appointment.",
+            "enum": ["pending", "processed"]
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp indicating when the appointment was created.",
@@ -127,6 +132,7 @@
         "email",
         "service",
         "date",
+        "status",
         "createdAt"
       ]
     }

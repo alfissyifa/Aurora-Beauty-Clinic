@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { LayoutDashboard, LogOut, Search, Bell, MessageSquare, User as UserIcon, Settings, Mail, Sparkles } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { LayoutDashboard, LogOut, Search, Bell, MessageSquare, User as UserIcon, Settings, Mail, Sparkles, Home, BriefcaseBusiness, Info, Phone } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 
 import {
@@ -15,6 +15,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarInset,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { useAuth, useUser } from '@/firebase';
 import { Input } from '@/components/ui/input';
@@ -30,7 +31,19 @@ export default function AdminLayout({
 }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
   const auth = useAuth();
+
+  const navItems = [
+    { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  ];
+
+  const publicNavItems = [
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/services', label: 'Layanan', icon: BriefcaseBusiness },
+    { href: '/about', label: 'Tentang Kami', icon: Info },
+    { href: '/contact', label: 'Kontak', icon: Phone },
+  ];
 
   useEffect(() => {
     // If auth state is not loading and there's no user, redirect to login
@@ -71,12 +84,25 @@ export default function AdminLayout({
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton href="/admin/dashboard" isActive={true} tooltip="Dashboard">
-                <LayoutDashboard />
-                Dashboard
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {navItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
+                        <item.icon />
+                        {item.label}
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+          <SidebarSeparator />
+           <SidebarMenu>
+            {publicNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label} target="_blank">
+                        <item.icon />
+                        {item.label}
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            ))}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>

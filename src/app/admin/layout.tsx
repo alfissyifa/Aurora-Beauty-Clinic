@@ -59,7 +59,7 @@ export default function AdminLayout({
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-            <div className="flex items-center gap-2 font-bold text-2xl text-sidebar-foreground px-2">
+            <div className="flex items-center gap-2 font-bold text-2xl text-sidebar-primary-foreground px-2">
                 <span>Admin</span>
             </div>
         </SidebarHeader>

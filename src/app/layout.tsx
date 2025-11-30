@@ -1,10 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import WhatsappCTA from '@/components/whatsapp-cta';
 import { cn } from '@/lib/utils';
-import Header from '@/components/header';
-import Footer from '@/components/footer';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
@@ -26,10 +23,7 @@ export default function RootLayout({
       </head>
       <body className={cn("font-body antialiased bg-background ")}>
         <FirebaseClientProvider>
-          <Header />
-          <main>{children}</main>
-          <Footer />
-          <WhatsappCTA />
+          {children}
           <Toaster />
         </FirebaseClientProvider>
       </body>

@@ -72,7 +72,8 @@ export function DataTable<TData, TValue>({
   canPrevPage,
   pageIndex,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  
   const table = useReactTable({
     data,
     columns,
@@ -128,7 +129,7 @@ export function DataTable<TData, TValue>({
             />
         </div>
       </div>
-      <div className="rounded-md border">
+      <div className="rounded-lg shadow-lg bg-card">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

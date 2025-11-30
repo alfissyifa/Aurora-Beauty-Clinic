@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useFirestore } from '@/firebase';
 import { collection, query, orderBy, limit, startAfter, endBefore, limitToLast, getDocs, where, Query, DocumentData, Timestamp, QueryDocumentSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -49,7 +49,9 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
   // Pagination state
   const [pageSize, setPageSize] = useState(initialLimit || 10);
   const [filter, setFilter] = useState('');
-  const [sort, setSort] = useState({ id: 'createdAt', desc: true });
+  const [sort, setSort] = useState<{ id: string; desc: boolean } | null>(
+    status ? null : { id: 'createdAt', desc: true }
+  );
   
   // For pagination cursor
   const [firstVisible, setFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
@@ -58,7 +60,7 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
 
   const fetchData = async (
     { pageIndex, pageSize: newPageSize, newFilter, newSort, direction }: 
-    { pageIndex: number, pageSize: number, newFilter: string, newSort: {id: string, desc: boolean}, direction?: 'next' | 'prev' | 'none' }
+    { pageIndex: number, pageSize: number, newFilter: string, newSort: {id: string, desc: boolean} | null, direction?: 'next' | 'prev' | 'none' }
   ) => {
     if (!firestore) return;
 
@@ -69,13 +71,9 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         let q: Query<DocumentData> = collection(firestore, 'appointments');
 
         if (status) {
-            // CRITICAL FIX: Only filter by status. DO NOT add orderBy for another field
-            // as this requires a composite index which we cannot create automatically.
-            // This prevents the Firestore index error.
-            q = query(q, where('status', '==', status));
-        } else {
-             // Sorting is only applied when not filtering by status to avoid index errors.
-             q = query(q, orderBy(newSort.id, newSort.desc ? 'desc' : 'asc'));
+          q = query(q, where('status', '==', status));
+        } else if (newSort) {
+          q = query(q, orderBy(newSort.id, newSort.desc ? 'desc' : 'asc'));
         }
 
         if (direction === 'next' && lastVisible) {
@@ -86,8 +84,6 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         
         q = query(q, limit(newPageSize));
         
-        // Note: Filtering by name requires an additional index if combined with other orderBy clauses
-        // For simplicity, this example might require a name_lowercase field and index in a real app.
         if (newFilter) {
             q = query(q, where('name', '>=', newFilter), where('name', '<=', newFilter + '\uf8ff'));
         }
@@ -277,7 +273,7 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
     },
   ];
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchData({ pageIndex: 0, pageSize, newFilter: filter, newSort: sort, direction: 'none' });
   }, [firestore, pageSize, filter, sort, status]); // Refetch on changes, including status
   
@@ -299,7 +295,10 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         data={data}
         isLoading={isLoading}
         onFilterChange={setFilter}
-        onSortChange={(id, desc) => setSort({id, desc})}
+        onSortChange={(id, desc) => {
+            if (status) return; // Disable sorting when a status is selected
+            setSort({id, desc})
+        }}
         onPageSizeChange={setPageSize}
         pageSize={pageSize}
         onNextPage={handleNextPage}
@@ -311,5 +310,4 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
   );
 }
 
-    
     

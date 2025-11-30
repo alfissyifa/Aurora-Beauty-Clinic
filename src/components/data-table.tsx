@@ -92,11 +92,8 @@ export function DataTable<TData, TValue>({
     if (sorting.length > 0) {
       const { id, desc } = sorting[0];
       onSortChange(id, desc);
-    } else {
-        // Default sort
-        onSortChange('createdAt', true);
     }
-  }, [sorting]);
+  }, [sorting, onSortChange]);
 
   return (
     <div className="space-y-4">
@@ -143,8 +140,8 @@ export function DataTable<TData, TValue>({
                         <div
                             {...{
                                 className: header.column.getCanSort()
-                                ? 'cursor-pointer select-none flex items-center gap-2'
-                                : '',
+                                ? 'cursor-pointer select-none flex items-center justify-center gap-2'
+                                : 'flex items-center justify-center gap-2',
                                 onClick: header.column.getToggleSortingHandler(),
                             }}
                         >
@@ -174,7 +171,7 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && 'selected'}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="text-center">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -222,3 +219,5 @@ export function DataTable<TData, TValue>({
     </div>
   );
 }
+
+    

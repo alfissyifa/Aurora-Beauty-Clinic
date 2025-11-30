@@ -132,12 +132,9 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         title: "Gagal Memperbarui",
         description: e.message || "Tidak dapat memperbarui status janji temu."
        });
-        const permissionError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'update',
-          requestResourceData: { status: newStatus },
-      });
-      errorEmitter.emit('permission-error', permissionError);
+       if (e instanceof FirestorePermissionError) {
+         errorEmitter.emit('permission-error', e);
+       }
     }
   };
 
@@ -157,11 +154,9 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
         title: "Gagal Menghapus",
         description: e.message || "Tidak dapat menghapus janji temu."
        });
-       const permissionError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'delete'
-      });
-      errorEmitter.emit('permission-error', permissionError);
+       if (e instanceof FirestorePermissionError) {
+         errorEmitter.emit('permission-error', e);
+       }
     }
   };
 
@@ -293,3 +288,5 @@ export default function AppointmentsTable({ limit: initialLimit, status }: { lim
     />
   );
 }
+
+    

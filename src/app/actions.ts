@@ -1,30 +1,28 @@
 "use server";
 
 import * as z from "zod";
+import { initializeFirebase } from "@/firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 const formSchema = z.object({
-  name: z.string(),
-  phone: z.string(),
-  email: z.string().email(),
-  service: z.string(),
-  date: z.date(),
+  name: z.string().min(2, { message: "Nama harus diisi, minimal 2 karakter." }),
+  phone: z.string().min(10, { message: "Nomor WhatsApp harus valid." }),
+  email: z.string().email({ message: "Format email tidak valid." }),
+  service: z.string({ required_error: "Silakan pilih layanan." }),
+  date: z.date({ required_error: "Tanggal konsultasi harus diisi." }),
   note: z.string().optional(),
 });
 
 export async function bookAppointment(values: z.infer<typeof formSchema>) {
-  // Here you would typically save the data to a database like Firestore.
-  // For this example, we'll just log it to the console.
-  
   try {
     const validatedData = formSchema.parse(values);
-    console.log("New booking received:", validatedData);
+    const { firestore } = initializeFirebase();
     
-    // TODO: Implement actual database saving (e.g., to Firebase Firestore)
-    // TODO: Implement email notification to admin
+    await addDoc(collection(firestore, "appointments"), {
+      ...validatedData,
+      createdAt: serverTimestamp(),
+    });
 
-    // Simulate a network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     return { success: true, message: "Booking successful!" };
   } catch (error) {
     console.error("Booking failed:", error);

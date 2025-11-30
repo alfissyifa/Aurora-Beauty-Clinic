@@ -1,7 +1,7 @@
 /**
  * Core Philosophy: This ruleset enforces a clear separation between public, read-only data and private, backend-managed data. 
- * The primary goal is to expose catalog-like information (services, testimonials) to all clients while completely protecting
- * sensitive booking information (appointments) from any client-side access.
+ * The primary goal is to expose catalog-like information (services, testimonials) to all clients while protecting
+ * sensitive booking information (appointments) from most client-side access.
  *
  * Data Structure: The data is organized into three distinct, top-level collections: /services, /testimonials, and /appointments. 
  * There are no user-specific subcollections or nested data structures, which simplifies the security model.
@@ -9,13 +9,13 @@
  * Key Security Decisions:
  * - Public Read-Only Collections: /services and /testimonials are configured to be publicly readable by anyone, including unauthenticated users. 
  *   All write operations (create, update, delete) from client applications are explicitly denied to ensure data integrity.
- * - Backend-Only Collection: The /appointments collection is completely locked down. No client-side reads or writes are permitted. 
- *   This enforces the principle that appointment data can only be created or managed by trusted backend processes (e.g., Cloud Functions) using the Admin SDK, which bypasses these rules.
- * - No User Ownership: This security model does not rely on user authentication for its decisions, as the data is either public or backend-managed.
+ * - Public Create for Appointments: The /appointments collection allows any client (authenticated or not) to create a new document.
+ *   This is necessary for the public-facing booking form. However, read, update, and delete operations are denied to protect
+ *   the privacy of booking data from other users.
  *
  * Denormalization for Authorization: Not applicable in this model, as there are no user-specific authorization requirements.
  *
- * Structural Segregation: The use of separate top-level collections for public data (/services, /testimonials) and private data (/appointments) 
+ * Structural Segregation: The use of separate top-level collections for public data (/services, /testimonials) and semi-private data (/appointments) 
  * is a core part of the security design. This prevents any possibility of a client accidentally querying for or accessing protected data.
  */
 rules_version = '2';
@@ -50,7 +50,7 @@ service cloud.firestore {
      * @description   Allows public read-only access to customer testimonials.
      * @path          /testimonials/{testimonialId}
      * @allow         Any user, authenticated or not, can list all testimonials. (list)
-     * @deny          A client attempts to update an existing testimonial. (update)
+      * @deny          A client attempts to update an existing testimonial. (update)
      * @principle     Secures the collection as read-only for all clients to maintain data integrity.
      */
     match /testimonials/{testimonialId} {
@@ -62,16 +62,16 @@ service cloud.firestore {
     }
 
     /**
-     * @description   Stores private appointment data. This collection is completely locked down from client access.
+     * @description   Stores appointment data. Allows public creation but restricts read/update/delete.
      * @path          /appointments/{appointmentId}
-     * @allow         No client-side operation is ever permitted.
-     * @deny          Any client attempts to create a new appointment for themselves. (create)
-     * @principle     Enforces a strict backend-only access model, protecting sensitive customer booking information.
+     * @allow         Any client can create a new appointment. (create)
+     * @deny          A client attempts to read or delete someone else's appointment. (get, list, delete, update)
+     * @principle     Enables a public booking form while protecting the privacy of existing appointment data.
      */
     match /appointments/{appointmentId} {
       allow get: if false;
       allow list: if false;
-      allow create: if false;
+      allow create: if true;
       allow update: if false;
       allow delete: if false;
     }

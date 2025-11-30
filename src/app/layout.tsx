@@ -5,6 +5,7 @@ import WhatsappCTA from '@/components/whatsapp-cta';
 import { cn } from '@/lib/utils';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Aurora Beauty Clinic',
@@ -24,11 +25,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
       </head>
       <body className={cn("font-body antialiased bg-background ")}>
-        <Header />
-        <main>{children}</main>
-        <Footer />
-        <WhatsappCTA />
-        <Toaster />
+        <FirebaseClientProvider>
+          <Header />
+          <main>{children}</main>
+          <Footer />
+          <WhatsappCTA />
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );

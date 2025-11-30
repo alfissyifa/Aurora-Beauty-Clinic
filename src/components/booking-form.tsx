@@ -70,7 +70,7 @@ export default function BookingForm() {
       toast({
         variant: "destructive",
         title: "Oh tidak! Terjadi kesalahan.",
-        description: "Gagal mengirimkan formulir. Silakan coba lagi.",
+        description: result.message || "Gagal mengirimkan formulir. Silakan coba lagi.",
       });
     }
   }

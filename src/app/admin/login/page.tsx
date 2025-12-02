@@ -77,11 +77,12 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
       } else if (error.code === 'permission-denied') {
         errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda benar.';
-        const adminDocRef = doc(firestore, "admins", values.email); // Re-create for error context
+        // Re-create doc ref with UID for accurate error reporting if needed, though the above logic should prevent this.
+        const adminDocRef = doc(firestore, "admins", auth.currentUser?.uid || 'unknown-uid');
         const permissionError = new FirestorePermissionError({
           path: adminDocRef.path,
           operation: 'create',
-          requestResourceData: { email: values.email },
+          requestResourceData: { email: values.email, uid: auth.currentUser?.uid },
         });
         errorEmitter.emit('permission-error', permissionError);
       } else {

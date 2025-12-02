@@ -6,8 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, serverTimestamp, setDoc, doc } from 'firebase/firestore';
-import { useState } from 'react';
+import { collection, serverTimestamp, setDoc, doc, getDocs, query, limit } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -77,8 +77,6 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
     } catch (error: any) {
         let errorMessage = error.message || 'Terjadi kesalahan yang tidak diketahui.';
         
-        // This is the crucial part. If the Firestore write fails, it's likely due to a security rule violation
-        // (meaning an admin already exists).
         if (error.code === 'permission-denied') {
             errorMessage = "Pendaftaran gagal. Kemungkinan sudah ada admin yang terdaftar.";
             const permissionError = new FirestorePermissionError({
@@ -88,7 +86,6 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
             });
             errorEmitter.emit('permission-error', permissionError);
             
-            // IMPORTANT: Clean up the created auth user if the firestore write failed.
             if (auth.currentUser && auth.currentUser.uid === createdUserUid) {
                 await auth.currentUser.delete().catch(() => console.warn("Gagal membersihkan user auth yang tidak jadi dibuat."));
             }
@@ -144,9 +141,30 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
 export default function LoginPage() {
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+
+  useEffect(() => {
+    async function checkAdmins() {
+      if (!firestore) return;
+      try {
+        const adminsCollection = collection(firestore, 'admins');
+        const q = query(adminsCollection, limit(1));
+        const querySnapshot = await getDocs(q);
+        setShowRegister(querySnapshot.empty);
+      } catch (error) {
+        // This might fail due to security rules on the first run, which is okay.
+        // We default to showing the button if the check fails.
+        setShowRegister(true);
+        console.warn("Could not check for existing admins, defaulting to show register button:", error);
+      }
+    }
+    checkAdmins();
+  }, [firestore]);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -182,6 +200,7 @@ export default function LoginPage() {
 
   const handleRegisterSuccess = () => {
     setIsRegisterOpen(false); // Close the dialog
+    setShowRegister(false); // Hide the button immediately after success
   };
 
   return (
@@ -225,23 +244,24 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
-
-            <div className="mt-6 text-center">
-              <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="link">Belum punya akun? Buat Akun Admin Pertama</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Register Admin Pertama</DialogTitle>
-                    <DialogDescription>
-                      Akun ini akan memiliki hak akses penuh untuk mengelola situs. Pastikan untuk menggunakan kredensial yang kuat. Hanya satu admin yang bisa dibuat.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <RegisterForm onRegisterSuccess={handleRegisterSuccess} />
-                </DialogContent>
-              </Dialog>
-            </div>
+            {showRegister && (
+              <div className="mt-6 text-center">
+                <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="link">Belum punya akun? Buat Akun Admin Pertama</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Register Admin Pertama</DialogTitle>
+                      <DialogDescription>
+                        Akun ini akan memiliki hak akses penuh untuk mengelola situs. Pastikan untuk menggunakan kredensial yang kuat. Hanya satu admin yang bisa dibuat.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <RegisterForm onRegisterSuccess={handleRegisterSuccess} />
+                  </DialogContent>
+                </Dialog>
+              </div>
+            )}
         </CardContent>
       </Card>
     </div>

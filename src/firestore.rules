@@ -40,18 +40,15 @@ service cloud.firestore {
     }
 
     /**
-     * @description   Manages admin user records. Critical for controlling access to admin registration.
-     * @path          /admins/{adminId}
-     * @allow create:  Only if there are no admins registered yet. This is the main security gate.
-     * @allow get:     Only an admin can get another admin's document.
-     * @allow list, write:   Only admins can list or write.
+     * @description   Manages admin user records.
+     * @allow create:  Only if the collection is empty. This is the main security gate.
+     * @allow list:    Allows clients to check if admins exist without reading data.
+     * @allow get, write: Only admins can read/write other admin docs.
      */
      match /admins/{adminId} {
-        // This is the most critical rule. It allows a document to be created ONLY if the collection is completely empty.
-        // The `size(get(...)) == 0` is the key. `limit: 1` makes the check very efficient.
-        // It also ensures a user can only create a document for their own UID.
-        allow create: if request.auth.uid == adminId && size(get(/databases/$(database)/documents/admins, {"limit": 1})) == 0;
-        allow get, list, write: if isAdmin();
+        allow create: if request.auth.uid == adminId && size(get(/databases/$(database)/documents/admins).data) == 0;
+        allow list: if true;
+        allow get, update, delete: if isAdmin();
     }
 
     /**

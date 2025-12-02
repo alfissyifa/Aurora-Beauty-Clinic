@@ -50,11 +50,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description   Stores appointment data. Allows public creation. Admins can read.
+     * @description   Stores appointment data. Allows public creation. Admins can read, update, and delete.
      */
     match /appointments/{appointmentId} {
       allow get, list: if isAdmin();
-      allow update, delete: if false;
+      allow update, delete: if isAdmin();
       allow create: if true;
     }
 

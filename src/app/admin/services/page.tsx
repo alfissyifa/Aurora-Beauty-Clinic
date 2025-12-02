@@ -198,7 +198,8 @@ export default function ServicesManagementPage() {
 
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'services'), orderBy('title', 'asc'));
+    // Removing orderBy to prevent index errors and ensure data is fetched.
+    return query(collection(firestore, 'services'));
   }, [firestore]);
 
   const { data: services, isLoading, error } = useCollection<Service>(servicesQuery);
@@ -339,7 +340,7 @@ export default function ServicesManagementPage() {
               {!isLoading && services?.length === 0 && (
                 <TableRow>
                     <TableCell colSpan={4} className="text-center h-24">
-                        Belum ada layanan yang ditambahkan.
+                        Belum ada layanan yang ditambahkan. Silakan klik tombol "Tambah Layanan".
                     </TableCell>
                 </TableRow>
             )}

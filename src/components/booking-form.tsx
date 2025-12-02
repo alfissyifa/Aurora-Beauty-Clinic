@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { addDoc, collection, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, query } from "firebase/firestore";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ export default function BookingForm() {
 
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'services'), orderBy('title', 'asc'));
+    return query(collection(firestore, 'services'));
   }, [firestore]);
 
   const { data: services, isLoading: isLoadingServices } = useCollection<Service>(servicesQuery);

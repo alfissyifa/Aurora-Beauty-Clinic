@@ -50,11 +50,11 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
     }
 
     try {
-      // 1. Daftar user dulu ke AUTH
+      // 1. Create the user with Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      // 2. Baru simpan ke Firestore menggunakan UID sebagai ID dokumen
+      // 2. Create a corresponding document in the 'admins' collection in Firestore
       const adminDocRef = doc(firestore, "admins", user.uid);
       const adminData = {
         uid: user.uid,
@@ -62,11 +62,12 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         createdAt: serverTimestamp(),
       };
       
+      // Use setDoc to create the document. This is a crucial step.
       await setDoc(adminDocRef, adminData);
       
       toast({
         title: 'Registrasi Berhasil!',
-        description: 'Akun admin telah dibuat. Silakan login.',
+        description: 'Akun admin telah dibuat dan disimpan di database. Silakan login.',
       });
       onRegisterSuccess();
 
@@ -76,13 +77,13 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
       } else if (error.code === 'permission-denied') {
-        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda benar.';
-        // Re-create doc ref with UID for accurate error reporting if needed, though the above logic should prevent this.
-        const adminDocRef = doc(firestore, "admins", auth.currentUser?.uid || 'unknown-uid');
+        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda mengizinkan pembuatan dokumen admin.';
+        
+        // This will create a detailed error for debugging security rules
         const permissionError = new FirestorePermissionError({
-          path: adminDocRef.path,
+          path: `admins/${auth.currentUser?.uid || 'new-user'}`,
           operation: 'create',
-          requestResourceData: { email: values.email, uid: auth.currentUser?.uid },
+          requestResourceData: { email: values.email, uid: auth.currentUser?.uid || 'new-user-uid' },
         });
         errorEmitter.emit('permission-error', permissionError);
       } else {

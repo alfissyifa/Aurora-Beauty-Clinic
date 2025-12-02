@@ -35,8 +35,8 @@ export default function AboutPage() {
                 </>
             ) : (
                 <>
-                    <h1 className="font-headline text-5xl md:text-6xl font-bold text-foreground">{content?.title}</h1>
-                    <p className="mt-4 text-xl text-muted-foreground">{content?.subtitle}</p>
+                    <h1 className="font-headline text-5xl md:text-6xl font-bold text-foreground">{content?.title || 'Tentang Kami'}</h1>
+                    <p className="mt-4 text-xl text-muted-foreground">{content?.subtitle || 'Ketahui lebih lanjut tentang cerita, misi, dan tim kami.'}</p>
                 </>
             )}
         </div>

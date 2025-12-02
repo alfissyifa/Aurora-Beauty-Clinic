@@ -47,17 +47,5 @@ export const galleryImages = [
 ];
 
 
-export const doctors = [
-  {
-    name: "Dr. Evelyn Reed, M.D.",
-    specialty: "Dermatologist & Aesthetic Specialist",
-    bio: "Dr. Evelyn Reed adalah seorang spesialis kulit dan estetika dengan pengalaman lebih dari 10 tahun. Beliau lulusan terbaik dari universitas ternama dan aktif mengikuti perkembangan terbaru di dunia estetika untuk memberikan hasil terbaik bagi pasiennya.",
-    image: findImage('doctor-1'),
-  },
-  {
-    name: "Dr. Sofia Chen, M.Sc.",
-    specialty: "Anti-Aging & Wellness Expert",
-    bio: "Dr. Sofia Chen memfokuskan praktiknya pada perawatan anti-penuaan dan kesehatan kulit secara holistik. Dengan pendekatan personal, beliau merancang program perawatan yang sesuai dengan kebutuhan unik setiap individu untuk mencapai kecantikan yang abadi.",
-    image: findImage('doctor-2'),
-  },
-];
+// This data is now managed in Firestore.
+export const doctors = [];

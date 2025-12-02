@@ -148,7 +148,22 @@
           "paragraph2": { "type": "string", "description": "Second main paragraph of content." }
         },
         "required": ["title", "subtitle", "paragraph1", "paragraph2"]
-      }
+      },
+    "Doctor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Doctor",
+      "type": "object",
+      "description": "Represents an expert or doctor at the clinic.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the doctor." },
+        "name": { "type": "string", "description": "Full name and title of the doctor." },
+        "specialty": { "type": "string", "description": "The doctor's area of specialty." },
+        "bio": { "type": "string", "description": "A short biography of the doctor." },
+        "image": { "type": "string", "description": "URL for the doctor's portrait.", "format": "uri" },
+        "imageHint": { "type": "string", "description": "A hint for AI image generation (e.g., 'female doctor')." }
+      },
+      "required": ["id", "name", "specialty", "bio", "image"]
+    }
   },
   "auth": {
     "providers": [
@@ -214,6 +229,17 @@
           "description": "Stores editable content for various pages like 'About Us'. Publicly readable, admin writable.",
           "params": [
             { "name": "pageId", "description": "Unique identifier for the page (e.g., 'about')." }
+          ]
+        }
+      },
+      {
+        "path": "/doctors/{doctorId}",
+        "definition": {
+          "entityName": "Doctor",
+          "schema": { "$ref": "#/backend/entities/Doctor" },
+          "description": "Stores profiles of doctors and experts. Publicly readable, admin writable.",
+          "params": [
+            { "name": "doctorId", "description": "Unique identifier for the doctor." }
           ]
         }
       }

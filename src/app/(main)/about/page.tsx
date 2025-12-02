@@ -1,10 +1,9 @@
 'use client';
 import Image from "next/image";
-import { doctors } from "@/lib/data";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useDoc, useFirestore, useMemoFirebase, useCollection } from "@/firebase";
+import { doc, collection, query, orderBy } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type AboutContent = {
@@ -14,6 +13,15 @@ type AboutContent = {
     paragraph2: string;
 }
 
+type Doctor = {
+    id: string;
+    name: string;
+    specialty: string;
+    bio: string;
+    image: string;
+    imageHint?: string;
+}
+
 const defaultAboutContent = {
     title: 'Tentang Kami',
     subtitle: 'Ketahui lebih lanjut tentang cerita, misi, dan tim kami.',
@@ -21,15 +29,35 @@ const defaultAboutContent = {
     paragraph2: 'Dengan menggabungkan teknologi estetika terdepan dan keahlian dari tim profesional kami, kami berkomitmen untuk memberikan hasil yang tidak hanya terlihat, tetapi juga terasa. Kami menawarkan rangkaian perawatan yang dirancang khusus untuk memenuhi setiap kebutuhan unik kulit Anda, mulai dari peremajaan hingga solusi masalah kulit yang kompleks.',
 };
 
+const DoctorSkeleton = () => (
+    <Card className="border-none bg-transparent shadow-none text-center">
+        <CardContent className="p-0">
+            <Skeleton className="aspect-square w-full max-w-xs mx-auto rounded-full mb-6" />
+            <Skeleton className="h-9 w-3/4 mx-auto mb-2" />
+            <Skeleton className="h-6 w-1/2 mx-auto mb-4" />
+            <Skeleton className="h-5 w-full mb-2" />
+            <Skeleton className="h-5 w-full mb-2" />
+            <Skeleton className="h-5 w-5/6 mx-auto" />
+        </CardContent>
+    </Card>
+);
+
 export default function AboutPage() {
     const aboutImage = PlaceHolderImages.find(img => img.id === 'about-clinic');
     const firestore = useFirestore();
+    
     const aboutContentRef = useMemoFirebase(() => {
         if (!firestore) return null;
         return doc(firestore, 'pages', 'about');
     }, [firestore]);
 
-    const { data: content, isLoading } = useDoc<AboutContent>(aboutContentRef);
+    const doctorsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'doctors'), orderBy('name', 'asc'));
+    }, [firestore]);
+
+    const { data: content, isLoading: isContentLoading } = useDoc<AboutContent>(aboutContentRef);
+    const { data: doctors, isLoading: areDoctorsLoading } = useCollection<Doctor>(doctorsQuery);
 
     const displayContent = content || defaultAboutContent;
 
@@ -37,7 +65,7 @@ export default function AboutPage() {
     <div className="bg-background">
       <div className="container py-20 md:py-28">
         <div className="text-center max-w-3xl mx-auto">
-            {isLoading ? (
+            {isContentLoading ? (
                 <>
                     <Skeleton className="h-14 w-3/4 mx-auto mb-4" />
                     <Skeleton className="h-7 w-1/2 mx-auto" />
@@ -63,7 +91,7 @@ export default function AboutPage() {
         )}
 
         <div className="max-w-4xl mx-auto text-center text-lg text-muted-foreground space-y-6">
-            {isLoading ? (
+            {isContentLoading ? (
                 <>
                     <Skeleton className="h-6 w-full" />
                     <Skeleton className="h-6 w-5/6 mx-auto" />
@@ -86,16 +114,22 @@ export default function AboutPage() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
-            {doctors.map((doctor) => (
-              <Card key={doctor.name} className="border-none bg-transparent shadow-none text-center">
+            {areDoctorsLoading && (
+                <>
+                    <DoctorSkeleton />
+                    <DoctorSkeleton />
+                </>
+            )}
+            {!areDoctorsLoading && doctors?.map((doctor) => (
+              <Card key={doctor.id} className="border-none bg-transparent shadow-none text-center">
                 <CardContent className="p-0">
                   <div className="relative aspect-square w-full max-w-xs mx-auto rounded-full overflow-hidden mb-6 shadow-lg">
                     <Image
-                      src={doctor.image.imageUrl}
+                      src={doctor.image}
                       alt={doctor.name}
                       fill
                       className="object-cover"
-                      data-ai-hint={doctor.image.imageHint}
+                      data-ai-hint={doctor.imageHint}
                     />
                   </div>
                   <h3 className="font-headline text-3xl font-bold">{doctor.name}</h3>

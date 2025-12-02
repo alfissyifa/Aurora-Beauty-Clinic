@@ -79,5 +79,13 @@ service cloud.firestore {
       allow get, list: if true;
       allow write: if isAdmin();
     }
+
+    /**
+     * @description   Stores profiles of doctors/experts. Publicly readable, admin writable.
+     */
+    match /doctors/{doctorId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
   }
 }

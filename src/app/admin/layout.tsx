@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, LogOut, Search, Bell, MessageSquare, User as UserIcon, Settings, Mail, Sparkles, BriefcaseBusiness, Info, Phone, ShoppingCart, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, LogOut, Search, Bell, MessageSquare, User as UserIcon, Settings, Mail, Sparkles, BriefcaseBusiness, Info, Phone, ShoppingCart, CalendarClock, Users } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 
 import {
@@ -40,6 +40,7 @@ export default function AdminLayout({
     { href: '/admin/dashboard', label: 'Dasbor', icon: LayoutDashboard },
     { href: '/admin/appointments', label: 'Janji Temu', icon: CalendarClock },
     { href: '/admin/services', label: 'Layanan', icon: ShoppingCart },
+    { href: '/admin/team', label: 'Tim Ahli', icon: Users },
     { href: '/admin/about', label: 'Tentang Kami', icon: Info },
   ];
 

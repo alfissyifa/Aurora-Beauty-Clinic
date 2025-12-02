@@ -22,10 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Format email tidak valid.' }),
@@ -46,25 +43,22 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
     if (!firestore || !auth) {
       toast({
         variant: "destructive",
-        title: 'Oh tidak! Terjadi kesalahan.',
-        description: "Koneksi ke database gagal. Silakan coba lagi.",
+        title: 'Koneksi Gagal',
+        description: "Koneksi ke database atau layanan otentikasi gagal.",
       });
       return;
     }
-    
-    let createdUserUid: string | null = null;
 
     try {
-      // First, create the user in Firebase Auth
+      // Create user in Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      createdUserUid = userCredential.user.uid;
-      const adminDocRef = doc(firestore, "admins", createdUserUid);
+      const user = userCredential.user;
       
-      // Then, try to create the document in Firestore
-      // This will be validated by the security rules
+      // Create admin document in Firestore
+      const adminDocRef = doc(firestore, "admins", user.uid);
       await setDoc(adminDocRef, {
-        uid: createdUserUid,
-        email: userCredential.user.email,
+        uid: user.uid,
+        email: user.email,
         createdAt: serverTimestamp(),
       });
       
@@ -75,28 +69,25 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       onRegisterSuccess();
 
     } catch (error: any) {
-        let errorMessage = error.message || 'Terjadi kesalahan yang tidak diketahui.';
-        
-        if (error.code === 'permission-denied') {
-            errorMessage = "Pendaftaran gagal. Kemungkinan sudah ada admin yang terdaftar.";
-            const permissionError = new FirestorePermissionError({
-                path: `admins/${createdUserUid || 'new-user'}`,
-                operation: 'create',
-                requestResourceData: { uid: createdUserUid, email: values.email },
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            
-            if (auth.currentUser && auth.currentUser.uid === createdUserUid) {
-                await auth.currentUser.delete().catch(() => console.warn("Gagal membersihkan user auth yang tidak jadi dibuat."));
-            }
-        } else if (error.code === 'auth/email-already-in-use') {
+        let errorMessage = 'Terjadi kesalahan yang tidak diketahui.';
+        if (error.code === 'auth/email-already-in-use') {
           errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
+        } else if (error.code === 'permission-denied') {
+          errorMessage = 'Pendaftaran gagal. Kemungkinan sudah ada admin yang terdaftar. Aturan keamanan menolak pembuatan admin baru.';
+        } else {
+            console.error("Registration Error:", error);
         }
+        
        toast({
         variant: 'destructive',
         title: 'Oh tidak! Registrasi gagal.',
         description: errorMessage,
       });
+
+      // Clean up failed user creation in Auth
+      if (auth.currentUser && auth.currentUser.email === values.email) {
+          await auth.currentUser.delete().catch(e => console.warn("Gagal membersihkan user auth yang gagal dibuat: ", e));
+      }
     }
   }
 
@@ -146,20 +137,26 @@ export default function LoginPage() {
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [isLoadingCheck, setIsLoadingCheck] = useState(true);
 
   useEffect(() => {
     async function checkAdmins() {
-      if (!firestore) return;
+      if (!firestore) {
+        setIsLoadingCheck(false);
+        return;
+      };
+      
       try {
         const adminsCollection = collection(firestore, 'admins');
         const q = query(adminsCollection, limit(1));
         const querySnapshot = await getDocs(q);
         setShowRegister(querySnapshot.empty);
       } catch (error) {
-        // This might fail due to security rules on the first run, which is okay.
-        // We default to showing the button if the check fails.
+        // If we get a permission error trying to list, it's safer to assume we should show the register button.
+        // This handles the very first run scenario where rules are tight.
         setShowRegister(true);
-        console.warn("Could not check for existing admins, defaulting to show register button:", error);
+      } finally {
+        setIsLoadingCheck(false);
       }
     }
     checkAdmins();
@@ -199,8 +196,8 @@ export default function LoginPage() {
   }
 
   const handleRegisterSuccess = () => {
-    setIsRegisterOpen(false); // Close the dialog
-    setShowRegister(false); // Hide the button immediately after success
+    setIsRegisterOpen(false);
+    setShowRegister(false);
   };
 
   return (
@@ -244,7 +241,7 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
-            {showRegister && (
+            {showRegister && !isLoadingCheck && (
               <div className="mt-6 text-center">
                 <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
                   <DialogTrigger asChild>
@@ -254,7 +251,7 @@ export default function LoginPage() {
                     <DialogHeader>
                       <DialogTitle>Register Admin Pertama</DialogTitle>
                       <DialogDescription>
-                        Akun ini akan memiliki hak akses penuh untuk mengelola situs. Pastikan untuk menggunakan kredensial yang kuat. Hanya satu admin yang bisa dibuat.
+                        Akun ini akan memiliki hak akses penuh untuk mengelola situs. Pastikan untuk menggunakan kredensial yang kuat. Hanya satu admin yang bisa dibuat melalui halaman ini.
                       </DialogDescription>
                     </DialogHeader>
                     <RegisterForm onRegisterSuccess={handleRegisterSuccess} />
@@ -262,8 +259,15 @@ export default function LoginPage() {
                 </Dialog>
               </div>
             )}
+            {isLoadingCheck && (
+                <div className='text-center mt-6 text-sm text-muted-foreground'>
+                    Memeriksa status admin...
+                </div>
+            )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

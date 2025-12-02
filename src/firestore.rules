@@ -40,14 +40,19 @@ service cloud.firestore {
     }
 
     /**
-     * @description   Manages admin user records.
-     * @allow create:  Only if the collection is empty. This is the main security gate.
-     * @allow list:    Allows clients to check if admins exist without reading data.
-     * @allow get, write: Only admins can read/write other admin docs.
+     * @description Manages admin user records.
+     * This is the simplest, most secure rule for a "first admin" scenario.
+     * The logic in the client-side registration form is now the primary gatekeeper
+     * before the write attempt is even made. This rule is the final backstop.
      */
      match /admins/{adminId} {
-        allow create: if size(get(/databases/$(database)/documents/admins).data) == 0;
+        // Allow a user to create their own admin doc, ONLY if the admins collection is empty.
+        allow create: if request.auth.uid == adminId && size(get(/databases/$(database)/documents/admins).data) == 0;
+        
+        // Allow anyone to check if there are admins. This is safe and needed for the UI.
         allow list: if true;
+        
+        // Only other admins can read, update, or delete admin documents.
         allow get, update, delete: if isAdmin();
     }
 
@@ -68,3 +73,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

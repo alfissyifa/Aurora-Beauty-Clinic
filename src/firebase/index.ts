@@ -3,19 +3,19 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  if (!getApps().length) {
-    // This is the standard initialization for web apps.
-    // It will use the provided config object.
-    const firebaseApp = initializeApp(firebaseConfig);
-    return getSdks(firebaseApp);
-  }
+  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  const firestore = getFirestore(app);
+  const auth = getAuth(app);
 
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
+  return {
+    firebaseApp: app,
+    auth,
+    firestore,
+  };
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {

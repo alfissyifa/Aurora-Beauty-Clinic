@@ -50,22 +50,22 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
     }
 
     try {
+      // 1. Buat akun di Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      const adminDocRef = doc(firestore, "admins", user.uid);
-      const adminData = {
+      // 2. Simpan data ke koleksi "users" dengan peran "user"
+      const userDocRef = doc(firestore, "users", user.uid);
+      await setDoc(userDocRef, {
           uid: user.uid,
           email: user.email,
-          role: "admin",
+          role: "user", // Selalu simpan sebagai 'user' saat registrasi
           createdAt: serverTimestamp(),
-      };
-
-      await setDoc(adminDocRef, adminData);
+      });
 
       toast({
-        title: 'Registrasi Admin Berhasil!',
-        description: 'Akun admin Anda telah dibuat. Silakan login.',
+        title: 'Registrasi Berhasil!',
+        description: 'Akun Anda telah dibuat. Silakan login.',
       });
       onRegisterSuccess();
 
@@ -75,13 +75,14 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
       } else if (error.name === 'FirebaseError' && (error as any).code === 'permission-denied') {
+        // Terjemahkan error izin ke format yang lebih mudah dipahami
         const permissionError = new FirestorePermissionError({
-          path: `admins/${auth.currentUser?.uid || 'new_user'}`,
+          path: `users/${auth.currentUser?.uid || 'new_user'}`,
           operation: 'create',
-          requestResourceData: { email: values.email, role: 'admin' },
+          requestResourceData: { email: values.email, role: 'user' },
         });
         errorEmitter.emit('permission-error', permissionError);
-        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore saat membuat dokumen admin.';
+        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda mengizinkan pembuatan dokumen pengguna.';
       } else {
         errorMessage = error.message;
       }

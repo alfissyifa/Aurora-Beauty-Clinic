@@ -226,13 +226,11 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
   return (
     <DataTable
         columns={columns}
-        data={filteredData} // Use the client-side filtered data
+        data={filteredData}
         isLoading={isLoading}
-        // Simplified props, pagination and filtering are disabled for now
         onFilterChange={() => {}}
         onSortChange={() => {}}
         onPageSizeChange={() => {}}
-        pageSize={filteredData?.length || 10}
         onNextPage={() => {}}
         onPrevPage={() => {}}
         canNextPage={false}

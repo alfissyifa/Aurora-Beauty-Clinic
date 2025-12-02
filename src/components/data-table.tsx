@@ -37,7 +37,7 @@ interface DataTableProps<TData, TValue> {
   onFilterChange: (value: string) => void;
   onSortChange: (id: string, desc: boolean) => void;
   onPageSizeChange: (size: number) => void;
-  pageSize: number;
+  pageSize?: number;
   onNextPage: () => void;
   onPrevPage: () => void;
   canNextPage: boolean;
@@ -65,7 +65,7 @@ export function DataTable<TData, TValue>({
   onFilterChange,
   onSortChange,
   onPageSizeChange,
-  pageSize,
+  pageSize = 10,
   onNextPage,
   onPrevPage,
   canNextPage,
@@ -219,5 +219,3 @@ export function DataTable<TData, TValue>({
     </div>
   );
 }
-
-    

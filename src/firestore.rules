@@ -1,10 +1,55 @@
 rules_version = '2';
+
+// Helper function to check if a user is an admin
+function isAdmin() {
+  return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+}
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read and write access to all documents for any user.
-    // This is insecure and should only be used for initial development.
-    match /{document=**} {
-      allow read, write: if true;
+
+    // Allow public read for services, testimonials, doctors, and about page
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin(); // Only admins can modify services
+    }
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isAdmin(); // Or some other logic for user-submitted testimonials
+    }
+    match /doctors/{doctorId} {
+      allow read: if true;
+      allow write: if isAdmin(); // Only admins can modify doctor profiles
+    }
+    match /pages/about {
+      allow read: if true;
+      allow write: if isAdmin(); // Only admins can modify the about page
+    }
+
+    // Rules for appointments
+    match /appointments/{appointmentId} {
+      // Allow anyone to create an appointment (booking)
+      allow create: if true;
+      // Only admins can read, update, or delete appointments
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Rules for user documents
+    match /users/{userId} {
+      // A user can create their own user document
+      allow create: if request.auth.uid == userId;
+      // A user can only read or write to their own document
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // Rules for admin documents
+    match /admins/{adminId} {
+      // Only existing admins can add new admins
+      allow create: if isAdmin(); 
+      // Admins can read the list of admins
+      allow list: if isAdmin();
+      // An admin can read or write to their own document
+      allow read, write: if request.auth.uid == adminId;
     }
   }
 }

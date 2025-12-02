@@ -186,7 +186,7 @@
         },
         "role": {
             "type": "string",
-            "description": "The role of the user, e.g., 'admin'.",
+            "description": "The role of the user, must be 'admin'.",
             "enum": ["admin"]
         }
       },
@@ -234,7 +234,7 @@
         "definition": {
           "entityName": "Service",
           "schema": {
-            "$ref": "#/backend/entities/Service"
+            "$ref": "#/entities/Service"
           },
           "description": "Stores details about beauty services offered by the clinic. Read-only access from the frontend.",
           "params": [
@@ -250,7 +250,7 @@
         "definition": {
           "entityName": "Testimonial",
           "schema": {
-            "$ref": "#/backend/entities/Testimonial"
+            "$ref": "#/entities/Testimonial"
           },
           "description": "Stores customer testimonials. Read-only access from the frontend.",
           "params": [
@@ -266,7 +266,7 @@
         "definition": {
           "entityName": "Appointment",
           "schema": {
-            "$ref": "#/backend/entities/Appointment"
+            "$ref": "#/entities/Appointment"
           },
           "description": "Stores appointment booking data. Write-only access from the backend via Cloud Functions.",
           "params": [
@@ -281,7 +281,7 @@
         "path": "/pages/{pageId}",
         "definition": {
           "entityName": "PageContent",
-          "schema": { "$ref": "#/backend/entities/PageContent" },
+          "schema": { "$ref": "#/entities/PageContent" },
           "description": "Stores editable content for various pages like 'About Us'. Publicly readable, admin writable.",
           "params": [
             { "name": "pageId", "description": "Unique identifier for the page (e.g., 'about')." }
@@ -292,7 +292,7 @@
         "path": "/doctors/{doctorId}",
         "definition": {
           "entityName": "Doctor",
-          "schema": { "$ref": "#/backend/entities/Doctor" },
+          "schema": { "$ref": "#/entities/Doctor" },
           "description": "Stores profiles of doctors and experts. Publicly readable, admin writable.",
           "params": [
             { "name": "doctorId", "description": "Unique identifier for the doctor." }
@@ -304,7 +304,7 @@
         "definition": {
           "entityName": "Admin",
           "schema": {
-            "$ref": "#/backend/entities/Admin"
+            "$ref": "#/entities/Admin"
           },
           "description": "Stores administrator user data. Only writable during account creation.",
           "params": [
@@ -320,7 +320,7 @@
         "definition": {
           "entityName": "User",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/entities/User"
           },
           "description": "Stores general user data.",
           "params": [

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { serverTimestamp, setDoc, doc, getDocs, collection, query, limit } from 'firebase/firestore';
+import { serverTimestamp, setDoc, doc } from 'firebase/firestore';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -54,40 +54,37 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      // 2. Check if an admin already exists
-      const adminsCollectionRef = collection(firestore, "admins");
-      const q = query(adminsCollectionRef, limit(1));
-      const adminSnapshot = await getDocs(q);
-
-      let role: 'admin' | 'user';
-      let targetCollection: string;
-      let successMessage: string;
-
-      if (adminSnapshot.empty) {
-        // No admins exist, create the first one
-        role = 'admin';
-        targetCollection = 'admins';
-        successMessage = 'Akun admin pertama berhasil dibuat. Silakan login.';
-      } else {
-        // An admin already exists, register as a regular user
-        role = 'user';
-        targetCollection = 'users';
-        successMessage = 'Registrasi berhasil. Akun Anda telah dibuat sebagai pengguna biasa.';
-      }
-      
-      // 3. Create a corresponding document in the determined collection
-      const userDocRef = doc(firestore, targetCollection, user.uid);
+      // 2. ALWAYS save the new user to the "users" collection with a "user" role.
+      // Admin promotion should be handled separately (e.g., manually in Firestore console).
+      const userDocRef = doc(firestore, "users", user.uid);
       const userData = {
+        uid: user.uid,
         email: user.email,
-        role: role,
+        role: "user",
         createdAt: serverTimestamp(),
       };
       
-      await setDoc(userDocRef, userData);
+      // Use a non-blocking write and handle permission errors
+      setDoc(userDocRef, userData).catch(error => {
+        if (error.code === 'permission-denied') {
+          const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'create',
+            requestResourceData: userData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          // Also show a toast for immediate feedback
+          toast({
+            variant: 'destructive',
+            title: 'Oh tidak! Registrasi gagal.',
+            description: 'Izin ditolak saat membuat data pengguna di Firestore.',
+          });
+        }
+      });
       
       toast({
         title: 'Registrasi Berhasil!',
-        description: successMessage,
+        description: 'Akun Anda telah berhasil dibuat. Silakan login.',
       });
       onRegisterSuccess();
 
@@ -96,16 +93,6 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
 
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
-      } else if (error.code === 'permission-denied') {
-        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda mengizinkan pembuatan dokumen.';
-        
-        // This will create a detailed error for debugging security rules
-        const permissionError = new FirestorePermissionError({
-          path: `admins or users collection`,
-          operation: 'create',
-          requestResourceData: { email: values.email, uid: auth.currentUser?.uid || 'new-user-uid' },
-        });
-        errorEmitter.emit('permission-error', permissionError);
       } else {
         errorMessage = error.message;
       }
@@ -248,7 +235,7 @@ export default function LoginPage() {
                 <DialogHeader>
                   <DialogTitle>Registrasi Akun Baru</DialogTitle>
                   <DialogDescription>
-                    Gunakan formulir ini untuk membuat akun baru. Hanya admin pertama yang akan memiliki hak akses penuh.
+                    Gunakan formulir ini untuk membuat akun baru. Anda akan terdaftar sebagai pengguna biasa.
                   </DialogDescription>
                 </DialogHeader>
                 <RegisterForm onRegisterSuccess={handleRegisterSuccess} />

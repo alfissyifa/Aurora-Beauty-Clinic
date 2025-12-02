@@ -50,22 +50,34 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
     }
 
     try {
-      // 1. Buat akun di Firebase Authentication
+      // Cek apakah sudah ada admin
+      const adminsCollectionRef = collection(firestore, 'admins');
+      const adminSnapshot = await getDocs(adminsCollectionRef);
+
+      if (!adminSnapshot.empty) {
+        toast({
+          variant: 'destructive',
+          title: 'Registrasi Ditutup',
+          description: 'Hanya satu admin yang diizinkan. Silakan login.',
+        });
+        return;
+      }
+
+      // Jika belum ada admin, lanjutkan membuat admin pertama
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      // 2. Simpan data ke koleksi "users" dengan peran "user"
-      const userDocRef = doc(firestore, "users", user.uid);
-      await setDoc(userDocRef, {
+      const adminDocRef = doc(firestore, "admins", user.uid);
+      await setDoc(adminDocRef, {
           uid: user.uid,
           email: user.email,
-          role: "user", // Selalu simpan sebagai 'user' saat registrasi
+          role: "admin",
           createdAt: serverTimestamp(),
       });
 
       toast({
-        title: 'Registrasi Berhasil!',
-        description: 'Akun Anda telah dibuat. Silakan login.',
+        title: 'Registrasi Admin Berhasil!',
+        description: 'Akun admin pertama telah dibuat. Silakan login.',
       });
       onRegisterSuccess();
 
@@ -75,14 +87,13 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
       } else if (error.name === 'FirebaseError' && (error as any).code === 'permission-denied') {
-        // Terjemahkan error izin ke format yang lebih mudah dipahami
         const permissionError = new FirestorePermissionError({
-          path: `users/${auth.currentUser?.uid || 'new_user'}`,
+          path: `admins/${auth.currentUser?.uid || 'new_user'}`,
           operation: 'create',
-          requestResourceData: { email: values.email, role: 'user' },
+          requestResourceData: { email: values.email, role: 'admin' },
         });
         errorEmitter.emit('permission-error', permissionError);
-        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda mengizinkan pembuatan dokumen pengguna.';
+        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda mengizinkan pembuatan admin pertama.';
       } else {
         errorMessage = error.message;
       }
@@ -223,9 +234,9 @@ export default function LoginPage() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Registrasi Akun Baru</DialogTitle>
+                  <DialogTitle>Registrasi Akun Admin</DialogTitle>
                   <DialogDescription>
-                    Gunakan formulir ini untuk membuat akun baru. Anda akan terdaftar sebagai pengguna biasa.
+                    Gunakan formulir ini untuk membuat akun admin pertama. Registrasi akan ditutup setelah admin pertama dibuat.
                   </DialogDescription>
                 </DialogHeader>
                 <RegisterForm onRegisterSuccess={handleRegisterSuccess} />

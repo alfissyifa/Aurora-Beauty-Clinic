@@ -127,11 +127,7 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
           try {
               const dateValue = row.getValue("date");
               if (!dateValue) return 'N/A';
-              // Check if it's a Firebase Timestamp
-              if (dateValue.seconds) {
-                  return format(new Date(dateValue.seconds * 1000), "eeee, dd MMMM yyyy", { locale: id });
-              }
-              // Assume it's an ISO string or other valid date string
+              // It is likely an ISO string from the booking form, so new Date() should parse it correctly.
               return format(new Date(dateValue), "eeee, dd MMMM yyyy", { locale: id });
           } catch (e) {
               console.error("Invalid date format for 'date':", row.getValue("date"));
@@ -143,14 +139,17 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
       accessorKey: "createdAt",
       header: "Tgl Booking",
       cell: ({ row }: any) => {
-          const timestamp = row.getValue("createdAt") as Timestamp;
-          if (!timestamp?.seconds) return 'N/A';
-          try {
-            return format(new Date(timestamp.seconds * 1000), "dd MMM yyyy, HH:mm");
-          } catch(e) {
-            console.error("Invalid date format for 'createdAt':", timestamp);
-            return 'Invalid Date';
+          const timestamp = row.getValue("createdAt") as unknown;
+          // Validate that timestamp is a Firestore Timestamp object with seconds property
+          if (timestamp instanceof Timestamp && typeof timestamp.seconds === 'number') {
+              try {
+                return format(timestamp.toDate(), "dd MMM yyyy, HH:mm");
+              } catch(e) {
+                console.error("Invalid date format for 'createdAt':", timestamp);
+                return 'Invalid Date';
+              }
           }
+          return 'N/A';
       },
     },
     {

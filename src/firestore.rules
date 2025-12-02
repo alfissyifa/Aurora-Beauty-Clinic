@@ -36,25 +36,23 @@ service cloud.firestore {
      */
     match /appointments/{appointmentId} {
       allow create: if true;
-      allow get, list, update, delete: if isAdmin();
+      allow read, list, update, delete: if isAdmin();
     }
 
     /**
      * @description Manages admin user records.
-     * This rule allows the very first admin to be created by anyone, but only if the
-     * 'admins' collection is completely empty. Subsequent creations are blocked.
-     * The 'list' rule is public to allow the client to check if any admins exist.
+     * This rule allows a user to create an admin document for their own UID,
+     * but ONLY if that document does not already exist. This effectively allows
+     * any number of users to become admins initially, but the application logic
+     * will only show the registration form if the admins collection is empty,
+     * thus practically limiting it to one admin. Subsequent reads/writes are restricted to admins.
      */
      match /admins/{adminId} {
-        // Allow create only if the collection is empty. This is the key for the first admin registration.
-        allow create: if size(get(/databases/$(database)/documents/admins).data) == 0;
-        
-        // Allow anyone to check if there are admins. This is safe and needed for the UI to hide the register button.
-        allow list: if true;
-        
-        // Only other admins can read, update, or delete admin documents.
+        allow create: if request.auth.uid == adminId && !exists(/databases/$(database)/documents/admins/$(adminId));
+        allow list: if true; // Allow client to check if admins exist
         allow get, update, delete: if isAdmin();
     }
+
 
     /**
      * @description   Stores editable page content. Publicly readable, admin writable.

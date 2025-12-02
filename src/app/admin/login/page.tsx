@@ -50,11 +50,11 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
     }
 
     try {
-      // Create user in Auth
+      // Step 1: Create user in Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      // Create admin document in Firestore
+      // Step 2: Create admin document in Firestore
       const adminDocRef = doc(firestore, "admins", user.uid);
       await setDoc(adminDocRef, {
         uid: user.uid,
@@ -73,7 +73,8 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         if (error.code === 'auth/email-already-in-use') {
           errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
         } else if (error.code === 'permission-denied') {
-          errorMessage = 'Pendaftaran gagal. Aturan keamanan menolak pembuatan admin baru karena sudah ada admin yang terdaftar.';
+          // This message is now more accurate. It fails because an admin likely exists.
+          errorMessage = 'Pendaftaran gagal. Aturan keamanan menolak pembuatan admin baru. Kemungkinan sudah ada admin yang terdaftar.';
         } else {
             console.error("Registration Error:", error);
         }
@@ -85,6 +86,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       });
 
       // Clean up failed user creation in Auth if the firestore write fails
+      // This is important to allow the user to try again.
       if (auth.currentUser && auth.currentUser.email === values.email) {
           await auth.currentUser.delete().catch(e => console.warn("Gagal membersihkan user auth yang gagal dibuat: ", e));
       }
@@ -148,19 +150,20 @@ export default function LoginPage() {
       
       try {
         const adminsCollection = collection(firestore, 'admins');
+        // Use a simple query with a limit of 1 to check if any document exists.
         const q = query(adminsCollection, limit(1));
         const querySnapshot = await getDocs(q);
-        // This check will now work because of `allow list: true` in the rules.
+        // If the snapshot is empty, it means no admin documents exist.
         setShowRegister(querySnapshot.empty);
       } catch (error) {
-        // If we still get a permission error, it's safer to not show the register button.
+        // If we get a permission error here, it's safer to not show the register button.
         setShowRegister(false);
         console.error("Error checking for admins:", error);
       } finally {
         setIsLoadingCheck(false);
       }
     }
-    // Run the check only when firestore instance is available.
+    
     if (firestore) {
         checkAdmins();
     }

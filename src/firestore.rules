@@ -41,12 +41,16 @@ service cloud.firestore {
 
     /**
      * @description Manages admin user records.
-     * Allows any authenticated user to create an admin record for themselves.
+     * Allows anyone to create the first admin record.
      * Subsequent reads/writes are restricted to existing admins.
-     * The application logic will hide the registration UI after the first admin is created.
      */
      match /admins/{adminId} {
-        allow create: if isSignedIn() && request.auth.uid == adminId;
+        // Allow anyone to create an admin document. The application logic
+        // should prevent creation if an admin already exists. This rule
+        // ensures the very first admin can always be created.
+        allow create: if true;
+
+        // Only existing admins can read, update, or delete admin records.
         allow get, list, update, delete: if isAdmin();
     }
 

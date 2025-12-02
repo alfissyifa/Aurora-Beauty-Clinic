@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { serverTimestamp, setDoc, doc } from 'firebase/firestore';
+import { serverTimestamp, setDoc, doc, getDocs, collection } from 'firebase/firestore';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -50,43 +50,41 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
     }
 
     try {
-      // 1. Create the user with Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      // 2. ALWAYS save the new user to the "users" collection with a "user" role.
-      // Admin promotion should be handled separately (e.g., manually in Firestore console).
-      const userDocRef = doc(firestore, "users", user.uid);
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        role: "user",
-        createdAt: serverTimestamp(),
+      const adminDocRef = doc(firestore, "admins", user.uid);
+      const adminData = {
+          uid: user.uid,
+          email: user.email,
+          role: "admin",
+          createdAt: serverTimestamp(),
       };
-      
-      // Use a non-blocking write and handle permission errors
-      setDoc(userDocRef, userData).catch(error => {
-        if (error.code === 'permission-denied') {
-          const permissionError = new FirestorePermissionError({
-            path: userDocRef.path,
-            operation: 'create',
-            requestResourceData: userData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-          // Also show a toast for immediate feedback
-          toast({
-            variant: 'destructive',
-            title: 'Oh tidak! Registrasi gagal.',
-            description: 'Izin ditolak saat membuat data pengguna di Firestore.',
-          });
-        }
+
+      setDoc(adminDocRef, adminData)
+        .then(() => {
+            toast({
+                title: 'Registrasi Admin Berhasil!',
+                description: 'Akun admin Anda telah dibuat. Silakan login.',
+            });
+            onRegisterSuccess();
+        })
+        .catch((error) => {
+            console.error("Error writing admin document: ", error);
+            if (error.code === 'permission-denied') {
+              const permissionError = new FirestorePermissionError({
+                path: adminDocRef.path,
+                operation: 'create',
+                requestResourceData: adminData,
+              });
+              errorEmitter.emit('permission-error', permissionError);
+            }
+            toast({
+                variant: 'destructive',
+                title: 'Oh tidak! Gagal menyimpan data admin.',
+                description: 'Akun berhasil dibuat, tetapi gagal membuat dokumen admin di Firestore.',
+            });
       });
-      
-      toast({
-        title: 'Registrasi Berhasil!',
-        description: 'Akun Anda telah berhasil dibuat. Silakan login.',
-      });
-      onRegisterSuccess();
 
     } catch (error: any) {
       let errorMessage = 'Terjadi kesalahan yang tidak diketahui.';

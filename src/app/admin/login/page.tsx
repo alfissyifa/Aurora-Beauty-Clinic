@@ -156,12 +156,10 @@ export default function LoginPage() {
         if (!firestore) return;
         setIsAdminLoading(true);
         try {
-            // This query now relies on the security rule `allow list: if true;`
             const adminsCollection = collection(firestore, 'admins');
             const snapshot = await getDocs(adminsCollection);
             setNoAdminsExist(snapshot.empty);
         } catch (error) {
-            // If rules deny the list, we assume admins exist to be safe.
             console.warn("Could not check for admins, hiding registration button as a precaution.", error);
             setNoAdminsExist(false);
         } finally {
@@ -245,37 +243,8 @@ export default function LoginPage() {
             </form>
           </Form>
 
-          {!isAdminLoading && noAdminsExist && (
-             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="w-full mt-4">Register Admin Pertama</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Registrasi Admin Pertama</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Karena belum ada admin yang terdaftar, Anda dapat membuat akun admin pertama untuk sistem ini.
-                    Setelah akun ini dibuat, opsi pendaftaran akan dinonaktifkan.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <RegisterForm onRegisterSuccess={() => {
-                   setNoAdminsExist(false);
-                   const cancelButton = document.querySelector('[data-alert-dialog-cancel]');
-                   if (cancelButton instanceof HTMLElement) {
-                      cancelButton.click();
-                   }
-                }} />
-                <AlertDialogFooter>
-                   <AlertDialogCancel data-alert-dialog-cancel>Batal</AlertDialogCancel>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    

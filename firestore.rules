@@ -63,13 +63,15 @@ service cloud.firestore {
      * @allow create:  Only if the collection is empty. This locks down registration after the first admin is created.
      * @allow list:    Any client can list the collection. This is necessary for the login page to check if an admin exists.
      * @allow get:     Only an admin can get another admin's document (though not currently used).
-     * @allow update, delete: Denied for all clients to protect admin data.
+     * @allow update:  Denied for all clients to protect admin data.
+     * @allow delete:  Temporarily allow any user to delete to clean up inconsistent data.
      */
      match /admins/{adminId} {
         allow list: if true;
         allow get: if isAdmin();
         allow create: !exists(/databases/$(database)/documents/admins/$(request.resource.data.uid));
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if true;
     }
   }
 }

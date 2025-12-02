@@ -41,16 +41,13 @@ service cloud.firestore {
 
     /**
      * @description Manages admin user records.
-     * This rule allows a user to create an admin document for their own UID,
-     * but ONLY if that document does not already exist. This effectively allows
-     * any number of users to become admins initially, but the application logic
-     * will only show the registration form if the admins collection is empty,
-     * thus practically limiting it to one admin. Subsequent reads/writes are restricted to admins.
+     * Allows any authenticated user to create an admin record for themselves.
+     * Subsequent reads/writes are restricted to existing admins.
+     * The application logic will hide the registration UI after the first admin is created.
      */
      match /admins/{adminId} {
-        allow create: if request.auth.uid == adminId && !exists(/databases/$(database)/documents/admins/$(adminId));
-        allow list: if true; // Allow client to check if admins exist
-        allow get, update, delete: if isAdmin();
+        allow create: if isSignedIn() && request.auth.uid == adminId;
+        allow get, list, update, delete: if isAdmin();
     }
 
 

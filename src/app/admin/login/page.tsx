@@ -6,8 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, serverTimestamp, setDoc, doc, getDocs, query, limit } from 'firebase/firestore';
-import { useState, useEffect } from 'react';
+import { collection, serverTimestamp, setDoc, doc } from 'firebase/firestore';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +23,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Format email tidak valid.' }),
@@ -50,33 +52,50 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
     }
 
     try {
-      // Step 1: Create user in Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      // Step 2: Create admin document in Firestore
       const adminDocRef = doc(firestore, "admins", user.uid);
-      await setDoc(adminDocRef, {
+      
+      // No 'await' here, instead chain a .catch()
+      setDoc(adminDocRef, {
         uid: user.uid,
         email: user.email,
         createdAt: serverTimestamp(),
+      }).then(() => {
+          toast({
+            title: 'Registrasi Berhasil!',
+            description: 'Akun admin telah dibuat. Silakan login.',
+          });
+          onRegisterSuccess();
+      }).catch(async (e: any) => {
+          // This catch block will now handle Firestore permission errors specifically
+          const permissionError = new FirestorePermissionError({
+              path: adminDocRef.path,
+              operation: 'create',
+              requestResourceData: { uid: user.uid, email: user.email }
+          });
+          errorEmitter.emit('permission-error', permissionError);
+
+          // Clean up the user in Auth since Firestore write failed
+          if (auth.currentUser && auth.currentUser.uid === user.uid) {
+            await auth.currentUser.delete();
+          }
+
+          // Show a generic message, as the detailed error is for the dev console
+          toast({
+            variant: 'destructive',
+            title: 'Oh tidak! Registrasi gagal.',
+            description: 'Gagal menyimpan data admin. Kemungkinan sudah ada admin yang terdaftar.',
+          });
       });
-      
-      toast({
-        title: 'Registrasi Berhasil!',
-        description: 'Akun admin pertama telah dibuat. Silakan login.',
-      });
-      onRegisterSuccess();
 
     } catch (error: any) {
         let errorMessage = 'Terjadi kesalahan yang tidak diketahui.';
         if (error.code === 'auth/email-already-in-use') {
           errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
-        } else if (error.code === 'permission-denied') {
-          // This message is now more accurate. It fails because an admin likely exists.
-          errorMessage = 'Pendaftaran gagal. Aturan keamanan menolak pembuatan admin baru. Kemungkinan sudah ada admin yang terdaftar.';
         } else {
-            console.error("Registration Error:", error);
+            console.error("Registration Error (Auth):", error);
         }
         
        toast({
@@ -84,12 +103,6 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         title: 'Oh tidak! Registrasi gagal.',
         description: errorMessage,
       });
-
-      // Clean up failed user creation in Auth if the firestore write fails
-      // This is important to allow the user to try again.
-      if (auth.currentUser && auth.currentUser.email === values.email) {
-          await auth.currentUser.delete().catch(e => console.warn("Gagal membersihkan user auth yang gagal dibuat: ", e));
-      }
     }
   }
 
@@ -134,41 +147,8 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
 export default function LoginPage() {
   const { toast } = useToast();
   const auth = useAuth();
-  const firestore = useFirestore();
   const router = useRouter();
-
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
-  const [isLoadingCheck, setIsLoadingCheck] = useState(true);
-
-  useEffect(() => {
-    async function checkAdmins() {
-      if (!firestore) {
-        setIsLoadingCheck(false);
-        return;
-      };
-      
-      try {
-        const adminsCollection = collection(firestore, 'admins');
-        // Use a simple query with a limit of 1 to check if any document exists.
-        const q = query(adminsCollection, limit(1));
-        const querySnapshot = await getDocs(q);
-        // If the snapshot is empty, it means no admin documents exist.
-        setShowRegister(querySnapshot.empty);
-      } catch (error) {
-        // If we get a permission error here, it's safer to not show the register button.
-        setShowRegister(false);
-        console.error("Error checking for admins:", error);
-      } finally {
-        setIsLoadingCheck(false);
-      }
-    }
-    
-    if (firestore) {
-        checkAdmins();
-    }
-  }, [firestore]);
-
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -204,7 +184,6 @@ export default function LoginPage() {
 
   const handleRegisterSuccess = () => {
     setIsRegisterOpen(false);
-    setShowRegister(false); // Hide the button after successful registration
   };
 
   return (
@@ -248,29 +227,22 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
-            {showRegister && !isLoadingCheck && (
-              <div className="mt-6 text-center">
-                <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="link">Belum punya akun? Buat Akun Admin Pertama</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Register Admin Pertama</DialogTitle>
-                      <DialogDescription>
-                        Akun ini akan memiliki hak akses penuh untuk mengelola situs. Pastikan untuk menggunakan kredensial yang kuat. Hanya satu admin yang bisa dibuat melalui halaman ini.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <RegisterForm onRegisterSuccess={handleRegisterSuccess} />
-                  </DialogContent>
-                </Dialog>
-              </div>
-            )}
-            {isLoadingCheck && (
-                <div className='text-center mt-6 text-sm text-muted-foreground'>
-                    Memeriksa status admin...
-                </div>
-            )}
+          <div className="mt-6 text-center">
+            <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
+              <DialogTrigger asChild>
+                <Button variant="link">Belum punya akun? Buat Akun Admin</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Register Admin</DialogTitle>
+                  <DialogDescription>
+                    Gunakan formulir ini untuk membuat akun admin baru.
+                  </DialogDescription>
+                </DialogHeader>
+                <RegisterForm onRegisterSuccess={handleRegisterSuccess} />
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardContent>
       </Card>
     </div>

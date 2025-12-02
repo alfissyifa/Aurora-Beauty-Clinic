@@ -34,6 +34,8 @@ export default function AdminLayout({
   const pathname = usePathname();
   const auth = useAuth();
 
+  const isLoginPage = pathname === '/admin/login';
+
   const navItems = [
     { href: '/admin/dashboard', label: 'Dasbor', icon: LayoutDashboard },
     { href: '/admin/appointments', label: 'Janji Temu', icon: CalendarClock },
@@ -48,17 +50,25 @@ export default function AdminLayout({
   ];
 
   useEffect(() => {
-    // If auth state is not loading and there's no user, redirect to login
-    if (!isUserLoading && !user) {
+    // If auth state is not loading and there's no user, and we are NOT on the login page, redirect to login
+    if (!isUserLoading && !user && !isLoginPage) {
       router.replace('/admin/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, isLoginPage]);
 
   const handleLogout = async () => {
     if(!auth) return;
     await signOut(auth);
     router.push('/admin/login');
   };
+  
+  if (isLoginPage) {
+    return (
+        <div className="bg-background min-h-screen">
+            {children}
+        </div>
+    );
+  }
 
   // While loading auth state, show a simplified layout or a loading spinner
   if (isUserLoading) {

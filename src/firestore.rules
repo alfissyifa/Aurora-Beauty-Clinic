@@ -16,6 +16,18 @@ service cloud.firestore {
     }
 
     /**
+     * @description Manages admin user records.
+     * The `create` rule is a special case to allow ONLY the first admin to register.
+     * Once an admin exists, this `create` rule will fail because the collection size is no longer 0.
+     * Subsequent reads/writes are restricted to existing admins via the `isAdmin()` function.
+     */
+    match /admins/{adminId} {
+      allow create: if isSignedIn() && request.auth.uid == adminId && size(get(/databases/$(database)/documents/admins).data) == 0;
+      allow read, update, delete: if isAdmin();
+      // No list permission is granted to non-admins. The create rule works around this.
+    }
+
+    /**
      * @description Allows public read access to services. Allows admin write access.
      */
     match /services/{serviceId} {
@@ -38,26 +50,6 @@ service cloud.firestore {
       allow create: if true;
       allow read, list, update, delete: if isAdmin();
     }
-
-    /**
-     * @description Manages admin user records.
-     * Allows anyone to create the first admin record.
-     * Subsequent reads/writes are restricted to existing admins.
-     */
-     match /admins/{adminId} {
-        // Allow a signed-in user to create their own admin document,
-        // ONLY if the admins collection is completely empty.
-        // This ensures only the very first admin can be created.
-        allow create: if isSignedIn() && request.auth.uid == adminId && size(get(/databases/$(database)/documents/admins, {"limit": 1})) == 0;
-
-        // Allow anyone to check if there are admins (for UI purposes).
-        // This is safe as it doesn't return document data.
-        allow list: if true;
-
-        // Only existing admins can read, update, or delete admin records.
-        allow get, update, delete: if isAdmin();
-    }
-
 
     /**
      * @description   Stores editable page content. Publicly readable, admin writable.

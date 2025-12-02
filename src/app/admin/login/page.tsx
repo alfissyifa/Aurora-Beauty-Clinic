@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import {
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 
 const formSchema = z.object({
@@ -61,13 +62,16 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       });
       return;
     }
+    
+    let createdUserUid: string | null = null;
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      const adminDocRef = doc(firestore, "admins", userCredential.user.uid);
+      createdUserUid = userCredential.user.uid;
+      const adminDocRef = doc(firestore, "admins", createdUserUid);
       
       await setDoc(adminDocRef, {
-        uid: userCredential.user.uid,
+        uid: createdUserUid,
         email: userCredential.user.email,
         createdAt: serverTimestamp(),
       });
@@ -83,14 +87,14 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         if (error.code === 'permission-denied') {
             errorMessage = "Pendaftaran gagal. Kemungkinan sudah ada admin yang terdaftar.";
             const permissionError = new FirestorePermissionError({
-                path: `admins/${auth.currentUser?.uid || 'new-user'}`,
+                path: `admins/${createdUserUid || 'new-user'}`,
                 operation: 'create',
-                requestResourceData: { uid: auth.currentUser?.uid, email: values.email },
+                requestResourceData: { uid: createdUserUid, email: values.email },
             });
             errorEmitter.emit('permission-error', permissionError);
             
-            if (auth.currentUser) {
-                // If the user was created but storing the admin doc failed, delete the auth user
+            // Clean up the created auth user if the firestore write failed
+            if (auth.currentUser && auth.currentUser.uid === createdUserUid) {
                 await auth.currentUser.delete().catch(() => console.warn("Failed to clean up orphaned auth user."));
             }
         } else if (error.code === 'auth/email-already-in-use') {
@@ -150,22 +154,24 @@ export default function LoginPage() {
 
   const [isAdminLoading, setIsAdminLoading] = useState(true);
   const [noAdminsExist, setNoAdminsExist] = useState(false);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+
+  const checkAdmins = async () => {
+    if (!firestore) return;
+    setIsAdminLoading(true);
+    try {
+        const adminsCollection = collection(firestore, 'admins');
+        const snapshot = await getDocs(adminsCollection);
+        setNoAdminsExist(snapshot.empty);
+    } catch (error) {
+        console.warn("Could not check for admins. Hiding registration button as a precaution.", error);
+        setNoAdminsExist(false); // Default to false on error to be safe
+    } finally {
+        setIsAdminLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function checkAdmins() {
-        if (!firestore) return;
-        setIsAdminLoading(true);
-        try {
-            const adminsCollection = collection(firestore, 'admins');
-            const snapshot = await getDocs(adminsCollection);
-            setNoAdminsExist(snapshot.empty);
-        } catch (error) {
-            console.warn("Could not check for admins, hiding registration button as a precaution.", error);
-            setNoAdminsExist(false);
-        } finally {
-            setIsAdminLoading(false);
-        }
-    }
     checkAdmins();
   }, [firestore]);
 
@@ -202,11 +208,19 @@ export default function LoginPage() {
     }
   }
 
+  const handleRegisterSuccess = () => {
+    setIsRegisterOpen(false); // Close the dialog
+    checkAdmins(); // Re-check admins, which should now hide the button
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-md shadow-2xl">
-        <CardHeader>
-          <CardTitle className="text-center font-headline text-3xl">Admin Login</CardTitle>
+        <CardHeader className="text-center">
+          <CardTitle className="font-headline text-3xl">Admin Login</CardTitle>
+          {noAdminsExist && (
+            <CardDescription className='pt-2'>Belum ada admin terdaftar. Buat akun admin pertama.</CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -243,8 +257,28 @@ export default function LoginPage() {
             </form>
           </Form>
 
+           {!isAdminLoading && noAdminsExist && (
+              <div className="mt-6 text-center">
+                <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="link">Buat Akun Admin Pertama</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Register Admin Pertama</DialogTitle>
+                      <DialogDescription>
+                        Akun ini akan memiliki hak akses penuh untuk mengelola situs. Pastikan untuk menggunakan kredensial yang kuat.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <RegisterForm onRegisterSuccess={handleRegisterSuccess} />
+                  </DialogContent>
+                </Dialog>
+              </div>
+            )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

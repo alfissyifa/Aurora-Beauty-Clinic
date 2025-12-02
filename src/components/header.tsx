@@ -20,7 +20,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-black text-white">
-      <div className="container flex h-20 items-center justify-between">
+      <div className="container flex h-20 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2 font-bold text-2xl">
           <span>Aurora</span>
         </Link>

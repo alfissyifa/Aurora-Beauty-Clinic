@@ -300,7 +300,7 @@
         }
       },
       {
-        "path": "/admins/{adminId}",
+        "path": "/xxadminxx/{adminId}",
         "definition": {
           "entityName": "Admin",
           "schema": {

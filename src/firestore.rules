@@ -2,7 +2,7 @@ rules_version = '2';
 
 // Helper function to check if a user is an admin
 function isAdmin() {
-  return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+  return exists(/databases/$(database)/documents/xxadminxx/$(request.auth.uid));
 }
 
 service cloud.firestore {
@@ -43,9 +43,9 @@ service cloud.firestore {
     }
 
     // Rules for admin documents
-    match /admins/{adminId} {
-      // A newly authenticated user can create their OWN admin document.
-      allow create: if request.auth.uid == adminId;
+    match /xxadminxx/{adminId} {
+      // Allow creating the first admin document if the collection is empty.
+      allow create: if size(get(/databases/$(database)/documents/xxadminxx).data) == 0;
       // Admins can read the list of admins
       allow list, read: if isAdmin();
       // An admin can write to their own document

@@ -53,9 +53,8 @@ service cloud.firestore {
      * @description   Stores appointment data. Allows public creation. Admins can read, update, and delete.
      */
     match /appointments/{appointmentId} {
-      allow get, list: if isAdmin();
-      allow update, delete: if isAdmin();
       allow create: if true;
+      allow get, list, update, delete: if isAdmin();
     }
 
     /**
@@ -67,6 +66,7 @@ service cloud.firestore {
      * @allow write:  Temporarily allow any user to write to clean up inconsistent data.
      */
      match /admins/{adminId} {
+        allow create: if !exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)) == null;
         allow list: if true;
         allow get: if isAdmin();
         allow write: if true;

@@ -1,23 +1,4 @@
 
-/**
- * Core Philosophy: This ruleset enforces a clear separation between public, read-only data and private, backend-managed data. 
- * The primary goal is to expose catalog-like information (services, testimonials) to all clients while protecting
- * sensitive booking information (appointments) and administrative data.
- *
- * Data Structure: The data is organized into four distinct, top-level collections: /services, /testimonials, /appointments, and /admins.
- * There are no user-specific subcollections or nested data structures, which simplifies the security model.
- *
- * Key Security Decisions:
- * - Public Read-Only Collections: /services and /testimonials are configured to be publicly readable by anyone. All write operations are denied unless by an admin.
- * - Public Create for Appointments: /appointments allows any client to create a new document. Read/update/delete operations are denied for non-admins.
- * - Conditional Admin Creation: The /admins collection has the most restrictive rules. A new admin document can ONLY be created if the collection is currently empty.
- *   This ensures that only the very first admin can be registered. Once one admin exists, no new ones can be created from the client.
- * - Restricted Admin Data: Only authenticated admin users (those whose UID is in an /admins document) can read the list of admins.
- *
- * Denormalization for Authorization: Not applicable in this model, as there are no user-specific authorization requirements.
- *
- * Structural Segregation: The use of separate top-level collections is a core part of the security design.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {

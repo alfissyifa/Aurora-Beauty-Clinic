@@ -90,7 +90,8 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
             errorEmitter.emit('permission-error', permissionError);
             
             if (auth.currentUser) {
-                await auth.currentUser.delete();
+                // If the user was created but storing the admin doc failed, delete the auth user
+                await auth.currentUser.delete().catch(() => console.warn("Failed to clean up orphaned auth user."));
             }
         } else if (error.code === 'auth/email-already-in-use') {
           errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
@@ -153,14 +154,15 @@ export default function LoginPage() {
   useEffect(() => {
     async function checkAdmins() {
         if (!firestore) return;
+        setIsAdminLoading(true);
         try {
+            // This query now relies on the security rule `allow list: if true;`
             const adminsCollection = collection(firestore, 'admins');
             const snapshot = await getDocs(adminsCollection);
             setNoAdminsExist(snapshot.empty);
         } catch (error) {
-            // This might fail due to security rules if not logged in,
-            // but the rules should allow list. We'll assume no admins if it fails.
-            console.warn("Could not check for admins, assuming registration should be closed.", error);
+            // If rules deny the list, we assume admins exist to be safe.
+            console.warn("Could not check for admins, hiding registration button as a precaution.", error);
             setNoAdminsExist(false);
         } finally {
             setIsAdminLoading(false);
@@ -257,7 +259,7 @@ export default function LoginPage() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <RegisterForm onRegisterSuccess={() => {
-                   setNoAdminsExist(false); // Hide button immediately after registration
+                   setNoAdminsExist(false);
                    const cancelButton = document.querySelector('[data-alert-dialog-cancel]');
                    if (cancelButton instanceof HTMLElement) {
                       cancelButton.click();

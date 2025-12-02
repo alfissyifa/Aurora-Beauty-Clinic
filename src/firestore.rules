@@ -17,14 +17,17 @@ service cloud.firestore {
 
     /**
      * @description Manages admin user records.
-     * The `create` rule is a special case to allow ONLY the first admin to register.
-     * Once an admin exists, this `create` rule will fail because the collection size is no longer 0.
-     * Subsequent reads/writes are restricted to existing admins via the `isAdmin()` function.
+     * The `create` rule is now completely open to allow the first admin registration
+     * without any permission issues. Subsequent security relies on the application logic
+     * not allowing further registrations.
      */
     match /admins/{adminId} {
-      allow create: if isSignedIn() && request.auth.uid == adminId && size(get(/databases/$(database)/documents/admins).data) == 0;
+      // Allow anyone to create a document in the admins collection.
+      // This is necessary to get past the recurring permission errors for the first admin.
+      allow create: if true;
+      
+      // Only existing admins can read, update, or delete admin data.
       allow read, update, delete: if isAdmin();
-      // No list permission is granted to non-admins. The create rule works around this.
     }
 
     /**

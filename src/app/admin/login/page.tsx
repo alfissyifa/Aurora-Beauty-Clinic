@@ -61,9 +61,11 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      // CORRECT FIX: The document ID in the 'admins' collection MUST be the user's UID.
       const adminDocRef = doc(firestore, "admins", userCredential.user.uid);
       
       try {
+        // The data can be simple, the existence of the document is what matters.
         await setDoc(adminDocRef, {
           uid: userCredential.user.uid,
           email: userCredential.user.email,
@@ -85,7 +87,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         });
         // Create and emit a detailed error for debugging
         const permissionError = new FirestorePermissionError({
-            path: `admins/${'\'\''}${userCredential.user.uid}${'\'\''}`,
+            path: `admins/${userCredential.user.uid}`,
             operation: 'create',
             requestResourceData: { uid: userCredential.user.uid, email: values.email },
         });

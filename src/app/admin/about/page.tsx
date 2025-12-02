@@ -73,28 +73,29 @@ export default function AboutAdminPage() {
     }
   }, [aboutContent, form]);
 
-  const onSubmit = async (values: AboutFormData) => {
+  const onSubmit = (values: AboutFormData) => {
     if (!aboutDocRef) return;
-    try {
-      await setDoc(aboutDocRef, values, { merge: true });
-      toast({
-        title: 'Sukses!',
-        description: 'Konten halaman "Tentang Kami" berhasil diperbarui.',
+    setDoc(aboutDocRef, values, { merge: true })
+      .then(() => {
+        toast({
+          title: 'Sukses!',
+          description: 'Konten halaman "Tentang Kami" berhasil diperbarui.',
+        });
+      })
+      .catch((e: any) => {
+        toast({
+          variant: 'destructive',
+          title: 'Oh tidak! Terjadi kesalahan.',
+          description: e.message || 'Gagal menyimpan konten.',
+        });
+        if (e.code === 'permission-denied') {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+              path: aboutDocRef.path,
+              operation: 'update',
+              requestResourceData: values
+          }));
+        }
       });
-    } catch (e: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Oh tidak! Terjadi kesalahan.',
-        description: e.message || 'Gagal menyimpan konten.',
-      });
-       if (e.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: aboutDocRef.path,
-                operation: 'update',
-                requestResourceData: values
-            }));
-       }
-    }
   };
 
   return (

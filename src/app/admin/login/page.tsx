@@ -85,7 +85,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         });
         // Create and emit a detailed error for debugging
         const permissionError = new FirestorePermissionError({
-            path: `admins/${userCredential.user.uid}`,
+            path: `admins/${'\'\''}${userCredential.user.uid}${'\'\''}`,
             operation: 'create',
             requestResourceData: { uid: userCredential.user.uid, email: values.email },
         });
@@ -191,7 +191,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] bg-background">
+    <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader>
           <CardTitle className="text-center font-headline text-3xl">Admin Login</CardTitle>

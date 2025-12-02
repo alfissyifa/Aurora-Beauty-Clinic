@@ -29,7 +29,8 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      // Temporarily hardcode the UID to grant admin access and bypass registration issues.
+      return isSignedIn() && request.auth.uid == 'd1NLxSGWXHSQor3e3ZNjtMWMGnb2';
     }
 
     /**

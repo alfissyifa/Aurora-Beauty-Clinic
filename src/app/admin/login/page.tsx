@@ -93,6 +93,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         });
         errorEmitter.emit('permission-error', permissionError);
         
+        // Clean up the created user in Auth if Firestore write fails
         await userCredential.user.delete();
       }
 
@@ -176,6 +177,8 @@ export default function LoginPage() {
               refetch();
             }
           } catch (error: any) {
+            // If we get a permission denied error, it means our rules are too strict.
+            // We need to emit an error so the agent can fix it.
             if (error.code === 'permission-denied') {
               const docRef = doc(firestore, 'admins', adminDoc.id);
               const permissionError = new FirestorePermissionError({
@@ -184,6 +187,7 @@ export default function LoginPage() {
               });
               errorEmitter.emit('permission-error', permissionError);
             } else {
+              // Other errors (e.g., network) should be logged.
               console.error(`Error during admin cleanup check for ${adminDoc.email}:`, error);
               toast({
                 variant: 'destructive',

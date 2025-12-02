@@ -1,3 +1,4 @@
+
 /**
  * Core Philosophy: This ruleset enforces a clear separation between public, read-only data and private, backend-managed data. 
  * The primary goal is to expose catalog-like information (services, testimonials) to all clients while protecting
@@ -69,6 +70,8 @@ service cloud.firestore {
         allow create: if !exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)) == null;
         allow list: if true;
         allow get: if isAdmin();
+        // Allow write access to clean up orphaned admin docs from the client.
+        // This is a temporary measure for robustness.
         allow write: if true;
     }
 

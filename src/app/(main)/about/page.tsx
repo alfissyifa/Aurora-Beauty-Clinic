@@ -14,6 +14,13 @@ type AboutContent = {
     paragraph2: string;
 }
 
+const defaultAboutContent = {
+    title: 'Tentang Kami',
+    subtitle: 'Ketahui lebih lanjut tentang cerita, misi, dan tim kami.',
+    paragraph1: 'Didirikan atas dasar hasrat untuk kecantikan dan kepercayaan diri, Aurora Beauty Clinic hadir sebagai destinasi premium untuk perawatan kulit Anda. Kami percaya bahwa setiap individu berhak merasa nyaman dan percaya diri dengan kulit yang sehat dan terawat.',
+    paragraph2: 'Dengan menggabungkan teknologi estetika terdepan dan keahlian dari tim profesional kami, kami berkomitmen untuk memberikan hasil yang tidak hanya terlihat, tetapi juga terasa. Kami menawarkan rangkaian perawatan yang dirancang khusus untuk memenuhi setiap kebutuhan unik kulit Anda, mulai dari peremajaan hingga solusi masalah kulit yang kompleks.',
+};
+
 export default function AboutPage() {
     const aboutImage = PlaceHolderImages.find(img => img.id === 'about-clinic');
     const firestore = useFirestore();
@@ -23,6 +30,8 @@ export default function AboutPage() {
     }, [firestore]);
 
     const { data: content, isLoading } = useDoc<AboutContent>(aboutContentRef);
+
+    const displayContent = content || defaultAboutContent;
 
     return (
     <div className="bg-background">
@@ -35,8 +44,8 @@ export default function AboutPage() {
                 </>
             ) : (
                 <>
-                    <h1 className="font-headline text-5xl md:text-6xl font-bold text-foreground">{content?.title || 'Tentang Kami'}</h1>
-                    <p className="mt-4 text-xl text-muted-foreground">{content?.subtitle || 'Ketahui lebih lanjut tentang cerita, misi, dan tim kami.'}</p>
+                    <h1 className="font-headline text-5xl md:text-6xl font-bold text-foreground">{displayContent.title}</h1>
+                    <p className="mt-4 text-xl text-muted-foreground">{displayContent.subtitle}</p>
                 </>
             )}
         </div>
@@ -63,8 +72,8 @@ export default function AboutPage() {
                 </>
             ) : (
                 <>
-                    <p>{content?.paragraph1}</p>
-                    <p>{content?.paragraph2}</p>
+                    <p>{displayContent.paragraph1}</p>
+                    <p>{displayContent.paragraph2}</p>
                 </>
             )}
         </div>

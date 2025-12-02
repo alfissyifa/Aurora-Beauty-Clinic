@@ -39,6 +39,15 @@ const aboutSchema = z.object({
 
 type AboutFormData = z.infer<typeof aboutSchema>;
 
+// Original frontend content
+const defaultAboutContent = {
+    title: 'Tentang Kami',
+    subtitle: 'Ketahui lebih lanjut tentang cerita, misi, dan tim kami.',
+    paragraph1: 'Didirikan atas dasar hasrat untuk kecantikan dan kepercayaan diri, Aurora Beauty Clinic hadir sebagai destinasi premium untuk perawatan kulit Anda. Kami percaya bahwa setiap individu berhak merasa nyaman dan percaya diri dengan kulit yang sehat dan terawat.',
+    paragraph2: 'Dengan menggabungkan teknologi estetika terdepan dan keahlian dari tim profesional kami, kami berkomitmen untuk memberikan hasil yang tidak hanya terlihat, tetapi juga terasa. Kami menawarkan rangkaian perawatan yang dirancang khusus untuk memenuhi setiap kebutuhan unik kulit Anda, mulai dari peremajaan hingga solusi masalah kulit yang kompleks.',
+};
+
+
 export default function AboutAdminPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -52,17 +61,15 @@ export default function AboutAdminPage() {
 
   const form = useForm<AboutFormData>({
     resolver: zodResolver(aboutSchema),
-    defaultValues: {
-      title: '',
-      subtitle: '',
-      paragraph1: '',
-      paragraph2: '',
-    },
+    defaultValues: aboutContent || defaultAboutContent,
   });
 
   useEffect(() => {
+    // Reset form with Firestore data if it exists, otherwise use defaults
     if (aboutContent) {
       form.reset(aboutContent);
+    } else {
+      form.reset(defaultAboutContent);
     }
   }, [aboutContent, form]);
 

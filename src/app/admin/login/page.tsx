@@ -1,11 +1,13 @@
+
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, serverTimestamp, setDoc, doc } from 'firebase/firestore';
+import { collection, serverTimestamp, setDoc, doc, deleteDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +35,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { getAuth, fetchSignInMethodsForEmail } from 'firebase/auth';
+
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Format email tidak valid.' }),
@@ -61,11 +65,9 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      // CORRECT FIX: The document ID in the 'admins' collection MUST be the user's UID.
       const adminDocRef = doc(firestore, "admins", userCredential.user.uid);
       
       try {
-        // The data can be simple, the existence of the document is what matters.
         await setDoc(adminDocRef, {
           uid: userCredential.user.uid,
           email: userCredential.user.email,
@@ -79,13 +81,11 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         onRegisterSuccess();
 
       } catch (firestoreError: any) {
-        // This will catch the permission error if an admin already exists
         toast({
           variant: 'destructive',
           title: 'Oh tidak! Registrasi gagal.',
           description: "Seorang admin sudah terdaftar. Pendaftaran lebih lanjut tidak diizinkan.",
         });
-        // Create and emit a detailed error for debugging
         const permissionError = new FirestorePermissionError({
             path: `admins/${userCredential.user.uid}`,
             operation: 'create',
@@ -93,13 +93,10 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         });
         errorEmitter.emit('permission-error', permissionError);
         
-        // IMPORTANT: Clean up the created user in Auth if Firestore write fails
-        // This prevents orphaned auth accounts.
         await userCredential.user.delete();
       }
 
     } catch (authError: any) {
-       // Catches errors from createUserWithEmailAndPassword (e.g., email-already-in-use)
        toast({
         variant: 'destructive',
         title: 'Oh tidak! Registrasi gagal.',
@@ -156,9 +153,43 @@ export default function LoginPage() {
     return firestore ? collection(firestore, 'admins') : null;
   }, [firestore]);
 
-  const { data: admins, isLoading: isAdminLoading } = useCollection(adminsQuery);
+  const { data: admins, isLoading: isAdminLoading, refetch } = useCollection(adminsQuery);
   
   const noAdminsExist = !isAdminLoading && admins && admins.length === 0;
+
+  // **START OF FIX: Automatic Cleanup Logic**
+  useEffect(() => {
+    const cleanupOrphanedAdmins = async () => {
+      if (admins && admins.length > 0 && auth) {
+        console.log(`Found ${admins.length} admin document(s). Checking for orphans...`);
+        for (const adminDoc of admins) {
+          try {
+            // Check if a user exists in Firebase Auth with the email from the admin doc
+            const methods = await fetchSignInMethodsForEmail(auth, adminDoc.email);
+            if (methods.length === 0) {
+              // No user found in Auth, so this is an orphaned admin document
+              console.warn(`Orphaned admin document found for email: ${adminDoc.email}. Deleting...`);
+              if (firestore) {
+                const docRef = doc(firestore, 'admins', adminDoc.id);
+                await deleteDoc(docRef);
+                toast({
+                  title: 'Data Admin Usang Dihapus',
+                  description: `Membersihkan data admin untuk ${adminDoc.email}. Silakan refresh.`,
+                });
+                refetch(); // Refetch the collection to update the UI
+              }
+            }
+          } catch (error) {
+            console.error(`Error during admin cleanup check for ${adminDoc.email}:`, error);
+          }
+        }
+      }
+    };
+
+    cleanupOrphanedAdmins();
+  }, [admins, auth, firestore, toast, refetch]);
+  // **END OF FIX**
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -264,3 +295,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -44,10 +44,19 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'appointments'), where('status', '==', status));
-  }, [firestore, status]);
+    // Query all appointments and order them by creation date.
+    // Filtering will be done on the client side. This avoids needing a composite index on 'status' and 'createdAt'.
+    return query(collection(firestore, 'appointments'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
 
-  const { data, isLoading, error, refetch } = useCollection<Appointment>(appointmentsQuery);
+  const { data: allAppointments, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
+
+  // Filter the appointments on the client-side based on the status prop.
+  const filteredData = React.useMemo(() => {
+    if (!allAppointments) return [];
+    return allAppointments.filter(appointment => appointment.status === status);
+  }, [allAppointments, status]);
+
 
   const handleStatusChange = async (id: string, newStatus: 'processed') => {
     if (!firestore) return;
@@ -217,13 +226,13 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
   return (
     <DataTable
         columns={columns}
-        data={data ?? []} // Use the data from useCollection hook
+        data={filteredData} // Use the client-side filtered data
         isLoading={isLoading}
         // Simplified props, pagination and filtering are disabled for now
         onFilterChange={() => {}}
         onSortChange={() => {}}
         onPageSizeChange={() => {}}
-        pageSize={data?.length || 10}
+        pageSize={filteredData?.length || 10}
         onNextPage={() => {}}
         onPrevPage={() => {}}
         canNextPage={false}

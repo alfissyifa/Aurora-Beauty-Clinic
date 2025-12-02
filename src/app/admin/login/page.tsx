@@ -20,8 +20,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, errorEmitter } from '@/firebase';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Format email tidak valid.' }),
@@ -60,8 +61,10 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         email: user.email,
         createdAt: serverTimestamp(),
       };
+      
       await setDoc(adminDocRef, adminData);
       
+      // Jika sampai di sini, berarti semuanya sukses
       toast({
         title: 'Registrasi Berhasil!',
         description: 'Akun admin telah dibuat. Silakan login.',
@@ -69,9 +72,18 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       onRegisterSuccess();
 
     } catch (error: any) {
+      // Blok catch ini hanya akan dijalankan jika ada error sesungguhnya
       let errorMessage = 'Terjadi kesalahan yang tidak diketahui.';
+
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
+      } else if (error.code === 'permission-denied') {
+        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda benar.';
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: `admins/${values.email}`, // Path generik karena UID belum tentu ada
+          operation: 'create',
+          requestResourceData: { email: values.email },
+        }));
       } else {
         console.error("Registration/Firestore Error:", error);
         errorMessage = error.message;

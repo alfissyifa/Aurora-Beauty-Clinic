@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -6,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, serverTimestamp, setDoc, doc } from 'firebase/firestore';
+import { serverTimestamp, setDoc, doc } from 'firebase/firestore';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -23,8 +22,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Format email tidak valid.' }),
@@ -46,22 +43,23 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       toast({
         variant: "destructive",
         title: 'Koneksi Gagal',
-        description: "Koneksi ke database atau layanan otentikasi gagal.",
+        description: "Koneksi ke layanan otentikasi atau database gagal.",
       });
       return;
     }
 
     try {
+      // 1. Daftar user dulu ke AUTH
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
+      // 2. Baru simpan ke Firestore
       const adminDocRef = doc(firestore, "admins", user.uid);
       const adminData = {
         uid: user.uid,
         email: user.email,
         createdAt: serverTimestamp(),
       };
-      
       await setDoc(adminDocRef, adminData);
       
       toast({
@@ -71,33 +69,19 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       onRegisterSuccess();
 
     } catch (error: any) {
-        if (error.code === 'permission-denied' && firestore) {
-            const user = auth.currentUser;
-            if (user) {
-                const adminDocRef = doc(firestore, "admins", user.uid);
-                const adminData = { uid: user.uid, email: user.email };
-                const permissionError = new FirestorePermissionError({
-                    path: adminDocRef.path,
-                    operation: 'create',
-                    requestResourceData: adminData
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            }
-        } else {
-            let errorMessage = 'Terjadi kesalahan yang tidak diketahui.';
-            if (error.code === 'auth/email-already-in-use') {
-              errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
-            } else {
-                console.error("Registration Error:", error);
-                errorMessage = error.message;
-            }
-            
-           toast({
-            variant: 'destructive',
-            title: 'Oh tidak! Registrasi gagal.',
-            description: errorMessage,
-          });
-        }
+      let errorMessage = 'Terjadi kesalahan yang tidak diketahui.';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
+      } else {
+        console.error("Registration/Firestore Error:", error);
+        errorMessage = error.message;
+      }
+      
+      toast({
+        variant: 'destructive',
+        title: 'Oh tidak! Registrasi gagal.',
+        description: errorMessage,
+      });
     }
   }
 

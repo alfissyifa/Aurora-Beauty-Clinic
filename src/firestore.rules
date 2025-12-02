@@ -46,7 +46,7 @@ service cloud.firestore {
      * @allow get, write: Only admins can read/write other admin docs.
      */
      match /admins/{adminId} {
-        allow create: if request.auth.uid == adminId && size(get(/databases/$(database)/documents/admins).data) == 0;
+        allow create: if size(get(/databases/$(database)/documents/admins).data) == 0;
         allow list: if true;
         allow get, update, delete: if isAdmin();
     }

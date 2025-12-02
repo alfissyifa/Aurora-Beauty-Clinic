@@ -41,7 +41,7 @@ body {
     /* Admin Sidebar Theme */
     --sidebar-background: 240 4.8% 95.9%;
     --sidebar-foreground: 240 5.9% 10%;
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary: 221 83% 53%; /* Blue from the satisfaction card */
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 4.8% 92.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
@@ -82,8 +82,8 @@ body {
     /* Admin Sidebar Theme */
     --sidebar-background: 0 0% 3.9%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 0 0% 98%;
-    --sidebar-primary-foreground: 0 0% 9%;
+    --sidebar-primary: 221 83% 53%; /* Blue from the satisfaction card */
+    --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 0 0% 14.9%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 0 0% 14.9%;

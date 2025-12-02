@@ -30,7 +30,7 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      // Temporarily hardcode the UID to grant admin access and bypass registration issues.
+      // Check if the user's UID exists in the admins collection.
       return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
@@ -67,8 +67,10 @@ service cloud.firestore {
      * @allow write:   Only an admin can modify documents (though not currently used).
      */
      match /admins/{adminId} {
+        // allow create: Only the first user can create an admin document.
         allow create: if size(get(/databases/$(database)/documents/admins).data) == 0;
-        allow list: if true;
+        // allow list: Let anyone check if admins exist to hide registration button.
+        allow list: if true; 
         allow get: if isAdmin();
         allow write: if isAdmin();
     }

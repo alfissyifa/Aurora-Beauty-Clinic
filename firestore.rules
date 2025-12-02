@@ -30,8 +30,8 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      // Temporarily hardcode the UID to grant admin access and bypass registration issues.
-      return isSignedIn() && request.auth.uid == 'd1NLxSGWXHSQor3e3ZNjtMWMGnb2';
+      // Check if the user's UID exists in the admins collection.
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     /**
@@ -61,18 +61,16 @@ service cloud.firestore {
     /**
      * @description   Manages admin user records. Critical for controlling access to admin registration.
      * @path          /admins/{adminId}
-     * @allow create:  Only if the collection is empty. This locks down registration after the first admin is created.
-     * @allow list:    Any client can list the collection. This is necessary for the login page to check if an admin exists.
-     * @allow get:     Only an admin can get another admin's document (though not currently used).
-     * @allow write:  Temporarily allow any user to write to clean up inconsistent data.
+     * @allow create:  Only if there are no admins registered yet. This prevents further sign-ups.
+     * @allow list:    Any client can check if the collection is empty.
+     * @allow get:     Only an admin can get another admin's document.
+     * @allow write:   Only an admin can modify documents (though not currently used).
      */
      match /admins/{adminId} {
-        allow create: if !exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)) == null;
+        allow create: if size(get(/databases/$(database)/documents/admins).data) == 0;
         allow list: if true;
         allow get: if isAdmin();
-        // Allow write access to clean up orphaned admin docs from the client.
-        // This is a temporary measure for robustness.
-        allow write: if true;
+        allow write: if isAdmin();
     }
 
     /**
@@ -92,3 +90,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

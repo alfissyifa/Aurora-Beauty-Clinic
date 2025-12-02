@@ -6,7 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, serverTimestamp, setDoc, doc } from 'firebase/firestore';
+import { collection, serverTimestamp, setDoc, doc, getDocs } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,8 +66,6 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const adminDocRef = doc(firestore, "admins", userCredential.user.uid);
       
-      // The security rule `size(get(/databases/$(database)/documents/admins).data) == 0`
-      // will handle the "first admin only" logic.
       await setDoc(adminDocRef, {
         uid: userCredential.user.uid,
         email: userCredential.user.email,
@@ -80,11 +79,9 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       onRegisterSuccess();
 
     } catch (error: any) {
-        // This will catch both auth errors and firestore permission errors
         let errorMessage = error.message || 'Terjadi kesalahan yang tidak diketahui.';
         if (error.code === 'permission-denied') {
             errorMessage = "Pendaftaran gagal. Kemungkinan sudah ada admin yang terdaftar.";
-            // We can still emit the permission error for debugging if needed
             const permissionError = new FirestorePermissionError({
                 path: `admins/${auth.currentUser?.uid || 'new-user'}`,
                 operation: 'create',
@@ -92,10 +89,11 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
             });
             errorEmitter.emit('permission-error', permissionError);
             
-            // Clean up the created auth user if firestore write fails
             if (auth.currentUser) {
                 await auth.currentUser.delete();
             }
+        } else if (error.code === 'auth/email-already-in-use') {
+          errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
         }
        toast({
         variant: 'destructive',
@@ -149,13 +147,28 @@ export default function LoginPage() {
   const firestore = useFirestore();
   const router = useRouter();
 
-  const adminsQuery = useMemoFirebase(() => {
-    return firestore ? collection(firestore, 'admins') : null;
+  const [isAdminLoading, setIsAdminLoading] = useState(true);
+  const [noAdminsExist, setNoAdminsExist] = useState(false);
+
+  useEffect(() => {
+    async function checkAdmins() {
+        if (!firestore) return;
+        try {
+            const adminsCollection = collection(firestore, 'admins');
+            const snapshot = await getDocs(adminsCollection);
+            setNoAdminsExist(snapshot.empty);
+        } catch (error) {
+            // This might fail due to security rules if not logged in,
+            // but the rules should allow list. We'll assume no admins if it fails.
+            console.warn("Could not check for admins, assuming registration should be closed.", error);
+            setNoAdminsExist(false);
+        } finally {
+            setIsAdminLoading(false);
+        }
+    }
+    checkAdmins();
   }, [firestore]);
 
-  const { data: admins, isLoading: isAdminLoading } = useCollection(adminsQuery);
-  
-  const noAdminsExist = !isAdminLoading && admins && admins.length === 0;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -230,7 +243,7 @@ export default function LoginPage() {
             </form>
           </Form>
 
-          {noAdminsExist && (
+          {!isAdminLoading && noAdminsExist && (
              <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" className="w-full mt-4">Register Admin Pertama</Button>
@@ -244,6 +257,7 @@ export default function LoginPage() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <RegisterForm onRegisterSuccess={() => {
+                   setNoAdminsExist(false); // Hide button immediately after registration
                    const cancelButton = document.querySelector('[data-alert-dialog-cancel]');
                    if (cancelButton instanceof HTMLElement) {
                       cancelButton.click();
@@ -261,3 +275,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

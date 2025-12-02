@@ -54,7 +54,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      // 2. Baru simpan ke Firestore
+      // 2. Baru simpan ke Firestore menggunakan UID sebagai ID dokumen
       const adminDocRef = doc(firestore, "admins", user.uid);
       const adminData = {
         uid: user.uid,
@@ -77,9 +77,9 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
       } else if (error.code === 'permission-denied') {
         errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda benar.';
-        // Emit error for detailed debugging if needed in the future
+        const adminDocRef = doc(firestore, "admins", values.email); // Re-create for error context
         const permissionError = new FirestorePermissionError({
-          path: `admins/${values.email}`,
+          path: adminDocRef.path,
           operation: 'create',
           requestResourceData: { email: values.email },
         });

@@ -163,6 +163,29 @@
         "imageHint": { "type": "string", "description": "A hint for AI image generation (e.g., 'female doctor')." }
       },
       "required": ["id", "name", "specialty", "bio", "image"]
+    },
+    "Admin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Admin",
+      "type": "object",
+      "description": "Represents an administrator user with access to the dashboard.",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The user's unique ID from Firebase Authentication."
+        },
+        "email": {
+          "type": "string",
+          "description": "The admin user's email address.",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the admin account was created.",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
     }
   },
   "auth": {
@@ -240,6 +263,22 @@
           "description": "Stores profiles of doctors and experts. Publicly readable, admin writable.",
           "params": [
             { "name": "doctorId", "description": "Unique identifier for the doctor." }
+          ]
+        }
+      },
+      {
+        "path": "/admins/{adminId}",
+        "definition": {
+          "entityName": "Admin",
+          "schema": {
+            "$ref": "#/backend/entities/Admin"
+          },
+          "description": "Stores administrator user data. Only writable during account creation.",
+          "params": [
+            {
+              "name": "adminId",
+              "description": "The UID of the administrator user."
+            }
           ]
         }
       }

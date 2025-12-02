@@ -160,32 +160,42 @@ export default function LoginPage() {
   // **START OF FIX: Automatic Cleanup Logic**
   useEffect(() => {
     const cleanupOrphanedAdmins = async () => {
-      if (admins && admins.length > 0 && auth) {
+      if (admins && admins.length > 0 && auth && firestore) {
         console.log(`Found ${admins.length} admin document(s). Checking for orphans...`);
         for (const adminDoc of admins) {
           try {
-            // Check if a user exists in Firebase Auth with the email from the admin doc
             const methods = await fetchSignInMethodsForEmail(auth, adminDoc.email);
             if (methods.length === 0) {
-              // No user found in Auth, so this is an orphaned admin document
               console.warn(`Orphaned admin document found for email: ${adminDoc.email}. Deleting...`);
-              if (firestore) {
-                const docRef = doc(firestore, 'admins', adminDoc.id);
-                await deleteDoc(docRef);
-                toast({
-                  title: 'Data Admin Usang Dihapus',
-                  description: `Membersihkan data admin untuk ${adminDoc.email}. Silakan refresh.`,
-                });
-                refetch(); // Refetch the collection to update the UI
-              }
+              const docRef = doc(firestore, 'admins', adminDoc.id);
+              await deleteDoc(docRef);
+              toast({
+                title: 'Data Admin Usang Dihapus',
+                description: `Membersihkan data admin untuk ${adminDoc.email}. Silakan refresh.`,
+              });
+              refetch();
             }
-          } catch (error) {
-            console.error(`Error during admin cleanup check for ${adminDoc.email}:`, error);
+          } catch (error: any) {
+            if (error.code === 'permission-denied') {
+              const docRef = doc(firestore, 'admins', adminDoc.id);
+              const permissionError = new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'delete',
+              });
+              errorEmitter.emit('permission-error', permissionError);
+            } else {
+              console.error(`Error during admin cleanup check for ${adminDoc.email}:`, error);
+              toast({
+                variant: 'destructive',
+                title: 'Gagal Membersihkan Data',
+                description: error.message || 'Terjadi kesalahan saat memeriksa data admin usang.'
+              });
+            }
           }
         }
       }
     };
-
+  
     cleanupOrphanedAdmins();
   }, [admins, auth, firestore, toast, refetch]);
   // **END OF FIX**
@@ -295,5 +305,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

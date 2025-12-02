@@ -44,12 +44,12 @@ service cloud.firestore {
 
     // Rules for admin documents
     match /admins/{adminId} {
-      // Only existing admins can add new admins
-      allow create: if isAdmin(); 
+      // A newly authenticated user can create their OWN admin document.
+      allow create: if request.auth.uid == adminId;
       // Admins can read the list of admins
-      allow list: if isAdmin();
-      // An admin can read or write to their own document
-      allow read, write: if request.auth.uid == adminId;
+      allow list, read: if isAdmin();
+      // An admin can write to their own document
+      allow write: if request.auth.uid == adminId;
     }
   }
 }

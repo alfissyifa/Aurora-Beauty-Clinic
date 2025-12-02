@@ -5,7 +5,8 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Simplified Firebase initialization
+// Simplified Firebase initialization to guarantee connection to cloud services
+// and remove any possibility of connecting to an emulator.
 export function initializeFirebase() {
   const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
   return {

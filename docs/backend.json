@@ -183,10 +183,43 @@
           "type": "string",
           "description": "Timestamp indicating when the admin account was created.",
           "format": "date-time"
+        },
+        "role": {
+            "type": "string",
+            "description": "The role of the user, e.g., 'admin'.",
+            "enum": ["admin"]
         }
       },
-      "required": ["uid", "email", "createdAt"]
-    }
+      "required": ["uid", "email", "createdAt", "role"]
+    },
+    "User": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "User",
+        "type": "object",
+        "description": "Represents a general user.",
+        "properties": {
+          "uid": {
+            "type": "string",
+            "description": "The user's unique ID from Firebase Authentication."
+          },
+          "email": {
+            "type": "string",
+            "description": "The user's email address.",
+            "format": "email"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Timestamp indicating when the user account was created.",
+            "format": "date-time"
+          },
+          "role": {
+              "type": "string",
+              "description": "The role of the user, e.g., 'user'.",
+              "enum": ["user"]
+          }
+        },
+        "required": ["uid", "email", "createdAt", "role"]
+      }
   },
   "auth": {
     "providers": [
@@ -278,6 +311,22 @@
             {
               "name": "adminId",
               "description": "The UID of the administrator user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores general user data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The UID of the user."
             }
           ]
         }

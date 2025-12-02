@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { serverTimestamp, setDoc, doc } from 'firebase/firestore';
+import { serverTimestamp, setDoc, doc, getDocs, collection, query, limit } from 'firebase/firestore';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -54,20 +54,40 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      // 2. Create a corresponding document in the 'admins' collection in Firestore
-      const adminDocRef = doc(firestore, "admins", user.uid);
-      const adminData = {
-        uid: user.uid,
+      // 2. Check if an admin already exists
+      const adminsCollectionRef = collection(firestore, "admins");
+      const q = query(adminsCollectionRef, limit(1));
+      const adminSnapshot = await getDocs(q);
+
+      let role: 'admin' | 'user';
+      let targetCollection: string;
+      let successMessage: string;
+
+      if (adminSnapshot.empty) {
+        // No admins exist, create the first one
+        role = 'admin';
+        targetCollection = 'admins';
+        successMessage = 'Akun admin pertama berhasil dibuat. Silakan login.';
+      } else {
+        // An admin already exists, register as a regular user
+        role = 'user';
+        targetCollection = 'users';
+        successMessage = 'Registrasi berhasil. Akun Anda telah dibuat sebagai pengguna biasa.';
+      }
+      
+      // 3. Create a corresponding document in the determined collection
+      const userDocRef = doc(firestore, targetCollection, user.uid);
+      const userData = {
         email: user.email,
+        role: role,
         createdAt: serverTimestamp(),
       };
       
-      // Use setDoc to create the document. This is a crucial step.
-      await setDoc(adminDocRef, adminData);
+      await setDoc(userDocRef, userData);
       
       toast({
         title: 'Registrasi Berhasil!',
-        description: 'Akun admin telah dibuat dan disimpan di database. Silakan login.',
+        description: successMessage,
       });
       onRegisterSuccess();
 
@@ -77,11 +97,11 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
       } else if (error.code === 'permission-denied') {
-        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda mengizinkan pembuatan dokumen admin.';
+        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda mengizinkan pembuatan dokumen.';
         
         // This will create a detailed error for debugging security rules
         const permissionError = new FirestorePermissionError({
-          path: `admins/${auth.currentUser?.uid || 'new-user'}`,
+          path: `admins or users collection`,
           operation: 'create',
           requestResourceData: { email: values.email, uid: auth.currentUser?.uid || 'new-user-uid' },
         });
@@ -106,9 +126,9 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email Admin Baru</FormLabel>
+              <FormLabel>Email Baru</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="admin@example.com" {...field} />
+                <Input type="email" placeholder="user@example.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -119,7 +139,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password Admin Baru</FormLabel>
+              <FormLabel>Password Baru</FormLabel>
               <FormControl>
                 <Input type="password" placeholder="******" {...field} />
               </FormControl>
@@ -128,7 +148,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
           )}
         />
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Mendaftarkan...' : 'Buat Akun Admin'}
+          {form.formState.isSubmitting ? 'Mendaftarkan...' : 'Buat Akun'}
         </Button>
       </form>
     </Form>
@@ -222,13 +242,13 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
               <DialogTrigger asChild>
-                <Button variant="link">Belum punya akun? Buat Akun Admin</Button>
+                <Button variant="link">Belum punya akun? Buat Akun</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Register Admin</DialogTitle>
+                  <DialogTitle>Registrasi Akun Baru</DialogTitle>
                   <DialogDescription>
-                    Gunakan formulir ini untuk membuat akun admin baru.
+                    Gunakan formulir ini untuk membuat akun baru. Hanya admin pertama yang akan memiliki hak akses penuh.
                   </DialogDescription>
                 </DialogHeader>
                 <RegisterForm onRegisterSuccess={handleRegisterSuccess} />

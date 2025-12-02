@@ -61,36 +61,27 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
           createdAt: serverTimestamp(),
       };
 
-      setDoc(adminDocRef, adminData)
-        .then(() => {
-            toast({
-                title: 'Registrasi Admin Berhasil!',
-                description: 'Akun admin Anda telah dibuat. Silakan login.',
-            });
-            onRegisterSuccess();
-        })
-        .catch((error) => {
-            console.error("Error writing admin document: ", error);
-            if (error.code === 'permission-denied') {
-              const permissionError = new FirestorePermissionError({
-                path: adminDocRef.path,
-                operation: 'create',
-                requestResourceData: adminData,
-              });
-              errorEmitter.emit('permission-error', permissionError);
-            }
-            toast({
-                variant: 'destructive',
-                title: 'Oh tidak! Gagal menyimpan data admin.',
-                description: 'Akun berhasil dibuat, tetapi gagal membuat dokumen admin di Firestore.',
-            });
+      await setDoc(adminDocRef, adminData);
+
+      toast({
+        title: 'Registrasi Admin Berhasil!',
+        description: 'Akun admin Anda telah dibuat. Silakan login.',
       });
+      onRegisterSuccess();
 
     } catch (error: any) {
       let errorMessage = 'Terjadi kesalahan yang tidak diketahui.';
 
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
+      } else if (error.name === 'FirebaseError' && (error as any).code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+          path: `admins/${auth.currentUser?.uid || 'new_user'}`,
+          operation: 'create',
+          requestResourceData: { email: values.email, role: 'admin' },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        errorMessage = 'Izin ditolak oleh aturan keamanan Firestore saat membuat dokumen admin.';
       } else {
         errorMessage = error.message;
       }

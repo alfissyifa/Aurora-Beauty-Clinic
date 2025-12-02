@@ -64,7 +64,6 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       
       await setDoc(adminDocRef, adminData);
       
-      // Jika sampai di sini, berarti semuanya sukses
       toast({
         title: 'Registrasi Berhasil!',
         description: 'Akun admin telah dibuat. Silakan login.',
@@ -72,20 +71,20 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       onRegisterSuccess();
 
     } catch (error: any) {
-      // Blok catch ini hanya akan dijalankan jika ada error sesungguhnya
       let errorMessage = 'Terjadi kesalahan yang tidak diketahui.';
 
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
       } else if (error.code === 'permission-denied') {
         errorMessage = 'Izin ditolak oleh aturan keamanan Firestore. Pastikan aturan Anda benar.';
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: `admins/${values.email}`, // Path generik karena UID belum tentu ada
+        // Emit error for detailed debugging if needed in the future
+        const permissionError = new FirestorePermissionError({
+          path: `admins/${values.email}`,
           operation: 'create',
           requestResourceData: { email: values.email },
-        }));
+        });
+        errorEmitter.emit('permission-error', permissionError);
       } else {
-        console.error("Registration/Firestore Error:", error);
         errorMessage = error.message;
       }
       
@@ -159,17 +158,17 @@ export default function LoginPage() {
       });
       router.push('/admin/dashboard');
     } catch (error: any) {
-      let errorMessage = 'Gagal melakukan login. Silakan periksa kembali email dan password Anda.';
+      let errorMessage = 'Gagal melakukan login. Terjadi kesalahan yang tidak diketahui.';
+      
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-         errorMessage = 'Email atau password yang Anda masukkan salah.';
+         errorMessage = 'Email atau password yang Anda masukkan salah. Silakan coba lagi.';
       }
 
       toast({
         variant: 'destructive',
-        title: 'Oh tidak! Terjadi kesalahan.',
+        title: 'Oh tidak! Login gagal.',
         description: errorMessage,
       });
-      console.error('Login failed:', error);
     }
   }
 

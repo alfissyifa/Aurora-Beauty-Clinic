@@ -2,72 +2,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * Helper Functions
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    
-    function isAdmin() {
-      // Check if the user's UID exists in the admins collection.
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-    }
-
-    /**
-     * @description Manages admin user records.
-     * The `create` rule is now completely open to allow the first admin registration
-     * without any permission issues. Subsequent security relies on the application logic
-     * not allowing further registrations.
-     */
-    match /admins/{adminId} {
-      // Allow anyone to create a document in the admins collection.
-      // This is the simplest, most direct way to fix the registration issue.
-      allow create: if true;
-      
-      // Only existing admins can read, update, or delete admin data.
-      allow read, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description Allows public read access to services. Allows admin write access.
-     */
-    match /services/{serviceId} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-
-    /**
-     * @description   Allows public read-only access to customer testimonials.
-     */
-    match /testimonials/{testimonialId} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-
-    /**
-     * @description   Stores appointment data. Allows public creation. Admins can read, update, and delete.
-     */
-    match /appointments/{appointmentId} {
-      allow create: if true;
-      allow read, list, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description   Stores editable page content. Publicly readable, admin writable.
-     */
-    match /pages/{pageId} {
-      allow get, list: if true;
-      allow write: if isAdmin();
-    }
-
-    /**
-     * @description   Stores profiles of doctors/experts. Publicly readable, admin writable.
-     */
-    match /doctors/{doctorId} {
-      allow get, list: if true;
-      allow write: if isAdmin();
+    match /{document=**} {
+      // WARNING: These rules are wide open for development purposes.
+      // Anyone can read, write, and delete any data in your database.
+      // Make sure to secure your rules before going to production.
+      allow read, write: if true;
     }
   }
 }

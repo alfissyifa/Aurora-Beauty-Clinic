@@ -43,7 +43,6 @@ export default function AdminLayout({
   ];
 
   const publicNavItems = [
-    { href: '/services', label: 'Layanan', icon: BriefcaseBusiness },
     { href: '/about', label: 'Tentang Kami', icon: Info },
     { href: '/contact', label: 'Kontak', icon: Phone },
   ];

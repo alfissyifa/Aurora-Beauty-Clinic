@@ -1,13 +1,12 @@
 
 'use client';
 
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, serverTimestamp, setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, setDoc, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -35,7 +34,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getAuth, fetchSignInMethodsForEmail } from 'firebase/auth';
 
 
 const formSchema = z.object({
@@ -67,41 +65,42 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const adminDocRef = doc(firestore, "admins", userCredential.user.uid);
       
-      try {
-        await setDoc(adminDocRef, {
-          uid: userCredential.user.uid,
-          email: userCredential.user.email,
-          createdAt: serverTimestamp(),
-        });
-        
-        toast({
-          title: 'Registrasi Berhasil!',
-          description: 'Akun admin pertama telah dibuat. Silakan login.',
-        });
-        onRegisterSuccess();
+      // The security rule `size(get(/databases/$(database)/documents/admins).data) == 0`
+      // will handle the "first admin only" logic.
+      await setDoc(adminDocRef, {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        createdAt: serverTimestamp(),
+      });
+      
+      toast({
+        title: 'Registrasi Berhasil!',
+        description: 'Akun admin pertama telah dibuat. Silakan login.',
+      });
+      onRegisterSuccess();
 
-      } catch (firestoreError: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Oh tidak! Registrasi gagal.',
-          description: "Seorang admin sudah terdaftar. Pendaftaran lebih lanjut tidak diizinkan.",
-        });
-        const permissionError = new FirestorePermissionError({
-            path: `admins/${userCredential.user.uid}`,
-            operation: 'create',
-            requestResourceData: { uid: userCredential.user.uid, email: values.email },
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        
-        // Clean up the created user in Auth if Firestore write fails
-        await userCredential.user.delete();
-      }
-
-    } catch (authError: any) {
+    } catch (error: any) {
+        // This will catch both auth errors and firestore permission errors
+        let errorMessage = error.message || 'Terjadi kesalahan yang tidak diketahui.';
+        if (error.code === 'permission-denied') {
+            errorMessage = "Pendaftaran gagal. Kemungkinan sudah ada admin yang terdaftar.";
+            // We can still emit the permission error for debugging if needed
+            const permissionError = new FirestorePermissionError({
+                path: `admins/${auth.currentUser?.uid || 'new-user'}`,
+                operation: 'create',
+                requestResourceData: { uid: auth.currentUser?.uid, email: values.email },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            
+            // Clean up the created auth user if firestore write fails
+            if (auth.currentUser) {
+                await auth.currentUser.delete();
+            }
+        }
        toast({
         variant: 'destructive',
         title: 'Oh tidak! Registrasi gagal.',
-        description: authError.message || 'Terjadi kesalahan yang tidak diketahui.',
+        description: errorMessage,
       });
     }
   }
@@ -154,56 +153,9 @@ export default function LoginPage() {
     return firestore ? collection(firestore, 'admins') : null;
   }, [firestore]);
 
-  const { data: admins, isLoading: isAdminLoading, refetch } = useCollection(adminsQuery);
+  const { data: admins, isLoading: isAdminLoading } = useCollection(adminsQuery);
   
   const noAdminsExist = !isAdminLoading && admins && admins.length === 0;
-
-  // **START OF FIX: Automatic Cleanup Logic**
-  useEffect(() => {
-    const cleanupOrphanedAdmins = async () => {
-      if (admins && admins.length > 0 && auth && firestore) {
-        console.log(`Found ${admins.length} admin document(s). Checking for orphans...`);
-        for (const adminDoc of admins) {
-          try {
-            const methods = await fetchSignInMethodsForEmail(auth, adminDoc.email);
-            if (methods.length === 0) {
-              console.warn(`Orphaned admin document found for email: ${adminDoc.email}. Deleting...`);
-              const docRef = doc(firestore, 'admins', adminDoc.id);
-              await deleteDoc(docRef);
-              toast({
-                title: 'Data Admin Usang Dihapus',
-                description: `Membersihkan data admin untuk ${adminDoc.email}. Silakan refresh.`,
-              });
-              refetch();
-            }
-          } catch (error: any) {
-            // If we get a permission denied error, it means our rules are too strict.
-            // We need to emit an error so the agent can fix it.
-            if (error.code === 'permission-denied') {
-              const docRef = doc(firestore, 'admins', adminDoc.id);
-              const permissionError = new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'delete',
-              });
-              errorEmitter.emit('permission-error', permissionError);
-            } else {
-              // Other errors (e.g., network) should be logged.
-              console.error(`Error during admin cleanup check for ${adminDoc.email}:`, error);
-              toast({
-                variant: 'destructive',
-                title: 'Gagal Membersihkan Data',
-                description: error.message || 'Terjadi kesalahan saat memeriksa data admin usang.'
-              });
-            }
-          }
-        }
-      }
-    };
-  
-    cleanupOrphanedAdmins();
-  }, [admins, auth, firestore, toast, refetch]);
-  // **END OF FIX**
-
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

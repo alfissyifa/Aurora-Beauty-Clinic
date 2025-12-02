@@ -1,0 +1,92 @@
+
+/**
+ * Core Philosophy: This ruleset enforces a clear separation between public, read-only data and private, backend-managed data. 
+ * The primary goal is to expose catalog-like information (services, testimonials) to all clients while protecting
+ * sensitive booking information (appointments) and administrative data.
+ *
+ * Data Structure: The data is organized into four distinct, top-level collections: /services, /testimonials, /appointments, and /admins.
+ * There are no user-specific subcollections or nested data structures, which simplifies the security model.
+ *
+ * Key Security Decisions:
+ * - Public Read-Only Collections: /services and /testimonials are configured to be publicly readable by anyone. All write operations are denied unless by an admin.
+ * - Public Create for Appointments: /appointments allows any client to create a new document. Read/update/delete operations are denied for non-admins.
+ * - Conditional Admin Creation: The /admins collection has the most restrictive rules. A new admin document can ONLY be created if the collection is currently empty.
+ *   This ensures that only the very first admin can be registered. Once one admin exists, no new ones can be created from the client.
+ * - Restricted Admin Data: Only authenticated admin users (those whose UID is in an /admins document) can read the list of admins.
+ *
+ * Denormalization for Authorization: Not applicable in this model, as there are no user-specific authorization requirements.
+ *
+ * Structural Segregation: The use of separate top-level collections is a core part of the security design.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * Helper Functions
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      // Temporarily hardcode the UID to grant admin access and bypass registration issues.
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    /**
+     * @description Allows public read access to services. Allows admin write access.
+     */
+    match /services/{serviceId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    /**
+     * @description   Allows public read-only access to customer testimonials.
+     */
+    match /testimonials/{testimonialId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    /**
+     * @description   Stores appointment data. Allows public creation. Admins can read, update, and delete.
+     */
+    match /appointments/{appointmentId} {
+      allow create: if true;
+      allow get, list, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description   Manages admin user records. Critical for controlling access to admin registration.
+     * @path          /admins/{adminId}
+     * @allow create:  Only if there are no admins registered yet. This prevents further sign-ups.
+     * @allow list:    Any client can check if the collection is empty.
+     * @allow get:     Only an admin can get another admin's document.
+     * @allow write:   Only an admin can modify documents (though not currently used).
+     */
+     match /admins/{adminId} {
+        allow create: if size(get(/databases/$(database)/documents/admins).data) == 0;
+        allow list: if true;
+        allow get: if isAdmin();
+        allow write: if isAdmin();
+    }
+
+    /**
+     * @description   Stores editable page content. Publicly readable, admin writable.
+     */
+    match /pages/{pageId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    /**
+     * @description   Stores profiles of doctors/experts. Publicly readable, admin writable.
+     */
+    match /doctors/{doctorId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

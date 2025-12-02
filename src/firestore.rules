@@ -41,15 +41,15 @@ service cloud.firestore {
 
     /**
      * @description Manages admin user records.
-     * This is the simplest, most secure rule for a "first admin" scenario.
-     * The logic in the client-side registration form is now the primary gatekeeper
-     * before the write attempt is even made. This rule is the final backstop.
+     * This rule allows the very first admin to be created by anyone, but only if the
+     * 'admins' collection is completely empty. Subsequent creations are blocked.
+     * The 'list' rule is public to allow the client to check if any admins exist.
      */
      match /admins/{adminId} {
-        // Allow a user to create their own admin doc, ONLY if the admins collection is empty.
-        allow create: if request.auth.uid == adminId && size(get(/databases/$(database)/documents/admins).data) == 0;
+        // Allow create only if the collection is empty. This is the key for the first admin registration.
+        allow create: if size(get(/databases/$(database)/documents/admins).data) == 0;
         
-        // Allow anyone to check if there are admins. This is safe and needed for the UI.
+        // Allow anyone to check if there are admins. This is safe and needed for the UI to hide the register button.
         allow list: if true;
         
         // Only other admins can read, update, or delete admin documents.
@@ -73,5 +73,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

@@ -73,7 +73,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         if (error.code === 'auth/email-already-in-use') {
           errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
         } else if (error.code === 'permission-denied') {
-          errorMessage = 'Pendaftaran gagal. Kemungkinan sudah ada admin yang terdaftar. Aturan keamanan menolak pembuatan admin baru.';
+          errorMessage = 'Pendaftaran gagal. Aturan keamanan menolak pembuatan admin baru karena sudah ada admin yang terdaftar.';
         } else {
             console.error("Registration Error:", error);
         }
@@ -84,7 +84,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         description: errorMessage,
       });
 
-      // Clean up failed user creation in Auth
+      // Clean up failed user creation in Auth if the firestore write fails
       if (auth.currentUser && auth.currentUser.email === values.email) {
           await auth.currentUser.delete().catch(e => console.warn("Gagal membersihkan user auth yang gagal dibuat: ", e));
       }
@@ -150,16 +150,20 @@ export default function LoginPage() {
         const adminsCollection = collection(firestore, 'admins');
         const q = query(adminsCollection, limit(1));
         const querySnapshot = await getDocs(q);
+        // This check will now work because of `allow list: true` in the rules.
         setShowRegister(querySnapshot.empty);
       } catch (error) {
-        // If we get a permission error trying to list, it's safer to assume we should show the register button.
-        // This handles the very first run scenario where rules are tight.
-        setShowRegister(true);
+        // If we still get a permission error, it's safer to not show the register button.
+        setShowRegister(false);
+        console.error("Error checking for admins:", error);
       } finally {
         setIsLoadingCheck(false);
       }
     }
-    checkAdmins();
+    // Run the check only when firestore instance is available.
+    if (firestore) {
+        checkAdmins();
+    }
   }, [firestore]);
 
 
@@ -197,7 +201,7 @@ export default function LoginPage() {
 
   const handleRegisterSuccess = () => {
     setIsRegisterOpen(false);
-    setShowRegister(false);
+    setShowRegister(false); // Hide the button after successful registration
   };
 
   return (
@@ -269,5 +273,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

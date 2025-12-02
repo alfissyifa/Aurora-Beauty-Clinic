@@ -53,7 +53,7 @@ export default function Header() {
       </div>
       {isMenuOpen && (
         <div className="md:hidden bg-black">
-          <nav className="flex flex-col items-center gap-6 py-8">
+          <nav className="container flex flex-col items-center gap-6 py-8">
             {navLinks.map((link) => (
               <Link
                 key={link.href}

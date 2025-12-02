@@ -6,12 +6,12 @@ import BookingSection from '@/components/booking-section';
 
 export default function Home() {
   return (
-    <div className="flex flex-col">
+    <>
       <HeroSection />
       <ServicesSection />
       <TestimonialsSection />
       <GallerySection />
       <BookingSection />
-    </div>
+    </>
   );
 }

@@ -18,7 +18,7 @@ type Service = {
 }
 
 const ServiceCardSkeleton = () => (
-    <Card className="flex flex-col overflow-hidden shadow-lg">
+    <Card className="flex flex-col overflow-hidden border">
         <CardHeader className="p-0">
             <Skeleton className="h-60 w-full" />
         </CardHeader>
@@ -40,7 +40,6 @@ export default function ServicesSection() {
 
   const servicesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Query for the first 3 services, ordered by title
     return query(collection(firestore, 'services'), orderBy('title', 'asc'), limit(3));
   }, [firestore]);
 
@@ -50,9 +49,9 @@ export default function ServicesSection() {
     <section id="services" className="py-20 md:py-32 bg-background">
       <div className="container">
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="font-headline text-4xl md:text-5xl font-bold text-foreground">Layanan Unggulan Kami</h2>
+          <h2 className="font-headline text-4xl md:text-5xl font-bold text-foreground">Our Featured Services</h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Kami menyediakan berbagai perawatan kecantikan terbaik yang ditangani oleh para ahli untuk hasil yang optimal.
+            Explore our curated selection of top-tier beauty treatments, handled by experts for optimal results.
           </p>
         </div>
 
@@ -60,7 +59,7 @@ export default function ServicesSection() {
           {isLoading && Array.from({length: 3}).map((_, i) => <ServiceCardSkeleton key={i} />)}
 
           {!isLoading && displayedServices?.map((service) => (
-            <Card key={service.id} className="flex flex-col overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
+            <Card key={service.id} className="flex flex-col overflow-hidden border transition-shadow duration-300">
               <CardHeader className="p-0">
                 <div className="relative h-60 w-full">
                   <Image
@@ -74,23 +73,21 @@ export default function ServicesSection() {
                 </div>
               </CardHeader>
               <CardContent className="flex-grow p-6">
-                <CardTitle className="font-headline text-2xl mb-2">{service.title}</CardTitle>
+                <CardTitle className="font-bold text-xl mb-2">{service.title}</CardTitle>
                 <p className="text-muted-foreground line-clamp-3">{service.description}</p>
               </CardContent>
               <CardFooter className="p-6 pt-0">
-                <Button variant="link" asChild className="p-0 h-auto text-accent">
-                  <Link href="/services">
-                    Pelajari lebih lanjut <ArrowRight className="ml-2 h-4 w-4" />
+                 <Link href="/services" className="text-sm font-medium text-primary hover:underline">
+                    Learn more <ArrowRight className="ml-1 h-4 w-4 inline" />
                   </Link>
-                </Button>
               </CardFooter>
             </Card>
           ))}
         </div>
         
         <div className="text-center mt-12">
-            <Button asChild size="lg">
-                <Link href="/services">Lihat Semua Layanan</Link>
+            <Button asChild size="lg" variant="outline">
+                <Link href="/services">View All Services</Link>
             </Button>
         </div>
       </div>

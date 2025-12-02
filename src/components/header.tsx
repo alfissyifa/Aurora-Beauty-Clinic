@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Sparkles, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -19,20 +19,19 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-black text-white">
       <div className="container flex h-20 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-2xl text-foreground">
-          <Sparkles className="h-6 w-6 text-accent" />
+        <Link href="/" className="flex items-center gap-2 font-bold text-2xl">
           <span>Aurora</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-6 text-lg">
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               className={cn(
-                "transition-colors hover:text-foreground/80",
-                pathname === link.href ? "text-foreground font-semibold" : "text-foreground/60"
+                "transition-colors hover:text-white/80",
+                pathname === link.href ? "text-white" : "text-white/70"
               )}
             >
               {link.label}
@@ -53,15 +52,15 @@ export default function Header() {
         </button>
       </div>
       {isMenuOpen && (
-        <div className="md:hidden bg-background">
+        <div className="md:hidden bg-black">
           <nav className="flex flex-col items-center gap-6 py-8">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "text-lg transition-colors hover:text-foreground/80",
-                  pathname === link.href ? "text-foreground font-semibold" : "text-foreground/60"
+                  "text-lg transition-colors hover:text-white/80",
+                  pathname === link.href ? "text-white font-semibold" : "text-white/70"
                 )}
                 onClick={() => setIsMenuOpen(false)}
               >

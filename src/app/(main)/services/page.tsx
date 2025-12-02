@@ -17,7 +17,7 @@ type Service = {
 }
 
 const ServiceCardSkeleton = ({ index }: { index: number }) => (
-    <Card className="overflow-hidden shadow-lg border-none">
+    <Card className="overflow-hidden border">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div className={`relative aspect-video lg:aspect-[4/3] ${index % 2 !== 0 ? 'lg:order-last' : ''}`}>
                 <Skeleton className="w-full h-full" />
@@ -56,9 +56,9 @@ export default function ServicesPage() {
     <div className="bg-background">
       <div className="container py-20 md:py-28">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h1 className="font-headline text-5xl md:text-6xl font-bold text-foreground">Layanan Kami</h1>
+          <h1 className="font-headline text-5xl md:text-6xl font-bold text-foreground">Our Services</h1>
           <p className="mt-4 text-xl text-muted-foreground">
-            Jelajahi rangkaian perawatan premium kami yang dirancang untuk kecantikan dan kesehatan kulit Anda.
+            Explore our range of premium treatments designed for your beauty and skin health.
           </p>
         </div>
 
@@ -66,14 +66,14 @@ export default function ServicesPage() {
           {isLoading && Array.from({ length: 3 }).map((_, index) => <ServiceCardSkeleton key={index} index={index} />)}
           
           {!isLoading && services?.map((service, index) => (
-            <Card key={service.id} className="overflow-hidden shadow-lg border-none">
+            <Card key={service.id} className="overflow-hidden border">
               <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 items-center`}>
                 <div className={`relative aspect-video lg:aspect-[4/3] ${index % 2 !== 0 ? 'lg:order-last' : ''}`}>
                   <Image
                     src={service.image}
                     alt={service.title}
                     fill
-                    className="object-cover rounded-lg"
+                    className="object-cover"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     data-ai-hint={service.imageHint}
                   />
@@ -81,7 +81,7 @@ export default function ServicesPage() {
                 <div className="p-8">
                   <h2 className="font-headline text-4xl font-bold mb-4">{service.title}</h2>
                   <p className="text-muted-foreground text-lg mb-4">{service.description}</p>
-                  <p className="text-2xl font-bold text-accent mb-6">{formatPrice(service.price)}</p>
+                  <p className="text-2xl font-bold text-foreground mb-6">{formatPrice(service.price)}</p>
                   <Button asChild size="lg">
                     <Link href="/#booking">Book Now</Link>
                   </Button>

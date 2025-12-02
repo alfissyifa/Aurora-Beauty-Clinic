@@ -5,32 +5,17 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
+// Simplified Firebase initialization
 export function initializeFirebase() {
   const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  const firestore = getFirestore(app);
-  const auth = getAuth(app);
-
-  // NOTE: Emulator connection logic has been completely removed to ensure
-  // the app connects directly to the production Firebase services.
-
   return {
     firebaseApp: app,
-    auth,
-    firestore,
+    auth: getAuth(app),
+    firestore: getFirestore(app),
   };
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  const firestore = getFirestore(firebaseApp);
-  const auth = getAuth(firebaseApp);
-  
-  return {
-    firebaseApp,
-    auth,
-    firestore,
-  };
-}
-
+// Keep other exports as they are essential for the app's Firebase integration
 export * from './provider';
 export * from './client-provider';
 export * from './firestore/use-collection';

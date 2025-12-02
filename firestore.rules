@@ -71,5 +71,13 @@ service cloud.firestore {
         allow get: if isAdmin();
         allow write: if true;
     }
+
+    /**
+     * @description   Stores editable page content. Publicly readable, admin writable.
+     */
+    match /pages/{pageId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
   }
 }

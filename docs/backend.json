@@ -135,7 +135,20 @@
         "status",
         "createdAt"
       ]
-    }
+    },
+    "PageContent": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Page Content",
+        "type": "object",
+        "description": "Represents editable content for a specific page.",
+        "properties": {
+          "title": { "type": "string", "description": "Main title of the page." },
+          "subtitle": { "type": "string", "description": "Subtitle or tagline for the page." },
+          "paragraph1": { "type": "string", "description": "First main paragraph of content." },
+          "paragraph2": { "type": "string", "description": "Second main paragraph of content." }
+        },
+        "required": ["title", "subtitle", "paragraph1", "paragraph2"]
+      }
   },
   "auth": {
     "providers": [
@@ -190,6 +203,17 @@
               "name": "appointmentId",
               "description": "Unique identifier for the appointment."
             }
+          ]
+        }
+      },
+       {
+        "path": "/pages/{pageId}",
+        "definition": {
+          "entityName": "PageContent",
+          "schema": { "$ref": "#/backend/entities/PageContent" },
+          "description": "Stores editable content for various pages like 'About Us'. Publicly readable, admin writable.",
+          "params": [
+            { "name": "pageId", "description": "Unique identifier for the page (e.g., 'about')." }
           ]
         }
       }

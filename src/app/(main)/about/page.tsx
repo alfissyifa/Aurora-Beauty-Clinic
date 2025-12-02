@@ -1,19 +1,44 @@
+'use client';
 import Image from "next/image";
 import { doctors } from "@/lib/data";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
+
+type AboutContent = {
+    title: string;
+    subtitle: string;
+    paragraph1: string;
+    paragraph2: string;
+}
 
 export default function AboutPage() {
     const aboutImage = PlaceHolderImages.find(img => img.id === 'about-clinic');
+    const firestore = useFirestore();
+    const aboutContentRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'pages', 'about');
+    }, [firestore]);
+
+    const { data: content, isLoading } = useDoc<AboutContent>(aboutContentRef);
 
     return (
     <div className="bg-background">
       <div className="container py-20 md:py-28">
         <div className="text-center max-w-3xl mx-auto">
-          <h1 className="font-headline text-5xl md:text-6xl font-bold text-foreground">Tentang Aurora Beauty Clinic</h1>
-          <p className="mt-4 text-xl text-muted-foreground">
-            Lebih dari sekadar klinik, kami adalah partner perjalanan kecantikan Anda.
-          </p>
+            {isLoading ? (
+                <>
+                    <Skeleton className="h-14 w-3/4 mx-auto mb-4" />
+                    <Skeleton className="h-7 w-1/2 mx-auto" />
+                </>
+            ) : (
+                <>
+                    <h1 className="font-headline text-5xl md:text-6xl font-bold text-foreground">{content?.title}</h1>
+                    <p className="mt-4 text-xl text-muted-foreground">{content?.subtitle}</p>
+                </>
+            )}
         </div>
 
         {aboutImage && (
@@ -29,12 +54,19 @@ export default function AboutPage() {
         )}
 
         <div className="max-w-4xl mx-auto text-center text-lg text-muted-foreground space-y-6">
-            <p>
-            Didirikan atas dasar hasrat untuk kecantikan dan ilmu pengetahuan, Aurora Beauty Clinic hadir untuk memberikan pengalaman perawatan estetika yang tak tertandingi. Kami percaya bahwa setiap individu memiliki kecantikan unik yang layak untuk dirayakan dan dirawat.
-            </p>
-            <p>
-            Dengan menggabungkan teknologi terkini, produk berkualitas tinggi, dan sentuhan ahli dari para profesional kami, kami berkomitmen untuk memberikan hasil yang tidak hanya terlihat indah tetapi juga terasa sehat. Misi kami adalah memberdayakan Anda dengan kepercayaan diri yang bersinar dari dalam.
-            </p>
+            {isLoading ? (
+                <>
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-6 w-5/6 mx-auto" />
+                    <Skeleton className="h-6 w-full mt-4" />
+                    <Skeleton className="h-6 w-4/5 mx-auto" />
+                </>
+            ) : (
+                <>
+                    <p>{content?.paragraph1}</p>
+                    <p>{content?.paragraph2}</p>
+                </>
+            )}
         </div>
 
         <div className="mt-20 md:mt-28">

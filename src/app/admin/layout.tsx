@@ -40,10 +40,10 @@ export default function AdminLayout({
     { href: '/admin/dashboard', label: 'Dasbor', icon: LayoutDashboard },
     { href: '/admin/appointments', label: 'Janji Temu', icon: CalendarClock },
     { href: '/admin/services', label: 'Layanan', icon: ShoppingCart },
+    { href: '/admin/about', label: 'Tentang Kami', icon: Info },
   ];
 
   const publicNavItems = [
-    { href: '/about', label: 'Tentang Kami', icon: Info },
     { href: '/contact', label: 'Kontak', icon: Phone },
   ];
 
@@ -96,7 +96,7 @@ export default function AdminLayout({
           <SidebarMenu>
             {navItems.map((item) => (
                 <SidebarMenuItem key={item.href + item.label}>
-                    <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label}>
+                    <SidebarMenuButton href={item.href} isActive={pathname.startsWith(item.href)} tooltip={item.label}>
                         <item.icon />
                         {item.label}
                     </SidebarMenuButton>

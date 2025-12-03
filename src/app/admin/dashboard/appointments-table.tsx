@@ -238,7 +238,7 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
     <DataTable
       columns={columns}
       data={data || []}
-      isLoading={isLoading}
+      isLoading={isLoading || isUserLoading}
       onFilterChange={() => {}}
       onSortChange={() => {}}
       onPageSizeChange={() => {}}

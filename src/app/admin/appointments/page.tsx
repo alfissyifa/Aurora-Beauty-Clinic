@@ -56,6 +56,7 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
   const { toast } = useToast();
 
   const appointmentsQuery = useMemoFirebase(() => {
+    // KRUSIAL: Jangan buat query sama sekali jika user atau firestore belum siap.
     if (!firestore || !user) {
       return null;
     }
@@ -69,53 +70,51 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
 
   const { data, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
 
-  const handleStatusChange = async (id: string, newStatus: 'processed') => {
+  const handleStatusChange = (id: string, newStatus: 'processed') => {
     if (!firestore) return;
     const docRef = doc(firestore, 'appointments', id);
-    try {
-      await updateDoc(docRef, { status: newStatus });
-      toast({
-        title: "Status Diperbarui",
-        description: `Janji temu telah dipindahkan ke "Sudah Dibaca".`
-      });
-    } catch (e: any) {
-      toast({
-        variant: "destructive",
-        title: "Gagal Memperbarui",
-        description: e.message || "Tidak dapat memperbarui status janji temu."
-      });
-      if (e.code === 'permission-denied') {
+    updateDoc(docRef, { status: newStatus })
+      .then(() => {
+          toast({
+            title: "Status Diperbarui",
+            description: `Janji temu telah dipindahkan ke "Sudah Dibaca".`
+          });
+      })
+      .catch((e: any) => {
+        toast({
+            variant: "destructive",
+            title: "Gagal Memperbarui",
+            description: e.message || "Tidak dapat memperbarui status janji temu."
+        });
         errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'update',
-          requestResourceData: { status: newStatus }
+            path: docRef.path,
+            operation: 'update',
+            requestResourceData: { status: newStatus }
         }));
-      }
-    }
+      });
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!firestore) return;
     const docRef = doc(firestore, 'appointments', id);
-    try {
-      await deleteDoc(docRef);
-      toast({
-        title: "Janji Temu Dihapus",
-        description: `Janji temu telah berhasil dihapus.`
+    deleteDoc(docRef)
+      .then(() => {
+          toast({
+            title: "Janji Temu Dihapus",
+            description: `Janji temu telah berhasil dihapus.`
+          });
+      })
+      .catch((e: any) => {
+          toast({
+            variant: "destructive",
+            title: "Gagal Menghapus",
+            description: e.message || "Tidak dapat menghapus janji temu."
+          });
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'delete'
+          }));
       });
-    } catch (e: any) {
-      toast({
-        variant: "destructive",
-        title: "Gagal Menghapus",
-        description: e.message || "Tidak dapat menghapus janji temu."
-      });
-      if (e.code === 'permission-denied') {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'delete'
-        }));
-      }
-    }
   };
   
   const columns = [
@@ -251,6 +250,25 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
 
 
 export default function AppointmentsPage() {
+  const { isUserLoading } = useUser();
+  
+  if (isUserLoading) {
+    return (
+        <div className="p-4 md:p-8 space-y-6">
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <Skeleton className="h-8 w-1/3" />
+                    <Skeleton className="h-4 w-1/2 mt-2" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-10 w-48 mb-4" />
+                    <AppointmentRowSkeleton />
+                </CardContent>
+            </Card>
+        </div>
+    )
+  }
+
   return (
      <div className="p-4 md:p-8 space-y-6">
         <Card className="shadow-lg">
@@ -276,5 +294,3 @@ export default function AppointmentsPage() {
     </div>
   )
 }
-
-    

@@ -16,9 +16,9 @@ service cloud.firestore {
 
     // Rules for the admin collection
     match /xxadminxx/{adminId} {
-      // Only allow the very first admin to be created via this rule.
-      // Subsequent admins must be added by other means (e.g. backend function or console).
-      allow create: if size(get(/databases/$(database)/documents/xxadminxx).data) == 0;
+      // Any signed-in user can create their own admin document, but cannot create for others.
+      // This allows the first user, or any subsequent user, to become an admin.
+      allow create: if isSignedIn() && request.auth.uid == adminId;
       
       // An admin can only read or update their own document.
       allow get, update: if isSignedIn() && request.auth.uid == adminId;
@@ -52,15 +52,11 @@ service cloud.firestore {
 
     // Rules for appointments collection
     match /appointments/{appointmentId} {
-      // Allow anyone to READ (get, list) appointments.
-      // This is crucial for the admin dashboard to function without permission errors.
-      allow read: if true;
-      
       // Allow anyone to CREATE a new appointment (booking form).
       allow create: if true;
 
-      // Only admins can UPDATE (e.g., change status) or DELETE appointments.
-      allow update, delete: if isAdmin();
+      // Only admins can READ, UPDATE (e.g., change status), or DELETE appointments.
+      allow read, update, delete: if isAdmin();
     }
     
     // Rules for general users collection

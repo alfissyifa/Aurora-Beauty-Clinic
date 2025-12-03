@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -40,16 +40,17 @@ const AppointmentRowSkeleton = () => (
 
 export default function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
   const appointmentsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null; // Guard: Do not create query if firestore or user is not ready
     return query(
         collection(firestore, 'appointments'), 
         where('status', '==', status),
         orderBy('createdAt', 'desc')
     );
-  }, [firestore, status]);
+  }, [firestore, status, user]);
 
   const { data, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
 
@@ -207,7 +208,7 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
     },
   ];
 
-  if (isLoading || !firestore) {
+  if (isLoading || isUserLoading || !firestore) {
       return <AppointmentRowSkeleton />;
   }
 

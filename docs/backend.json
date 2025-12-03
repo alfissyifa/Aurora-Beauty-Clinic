@@ -192,6 +192,19 @@
       },
       "required": ["id", "imageUrl", "description", "createdAt"]
     },
+    "RepositoryItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Repository Item",
+      "type": "object",
+      "description": "Represents an item in the repository.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the repository item." },
+        "title": { "type": "string", "description": "Title of the repository item." },
+        "image": { "type": "string", "description": "URL of the image for the item.", "format": "uri" },
+        "createdAt": { "type": "string", "description": "Timestamp for ordering.", "format": "date-time" }
+      },
+      "required": ["id", "title", "image", "createdAt"]
+    },
     "Admin": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Admin",
@@ -335,6 +348,17 @@
           "description": "Stores images for the website gallery. Publicly readable, admin writable.",
           "params": [
             { "name": "imageId", "description": "Unique identifier for the gallery image." }
+          ]
+        }
+      },
+      {
+        "path": "/repositories/{repositoryId}",
+        "definition": {
+          "entityName": "RepositoryItem",
+          "schema": { "$ref": "#/entities/RepositoryItem" },
+          "description": "Stores items for the repository. Publicly readable, admin writable.",
+          "params": [
+            { "name": "repositoryId", "description": "Unique identifier for the repository item." }
           ]
         }
       },

@@ -55,33 +55,34 @@ import {
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 
 const galleryImageSchema = z.object({
   imageUrl: z.string().url('URL gambar tidak valid.'),
-  description: z.string().min(3, 'Deskripsi minimal 3 karakter.'),
-  imageHint: z.string().optional(),
 });
 
-type GalleryImage = z.infer<typeof galleryImageSchema> & { id: string, createdAt: Timestamp };
+type GalleryImageFormData = z.infer<typeof galleryImageSchema>;
+type GalleryImage = GalleryImageFormData & { 
+  id: string; 
+  description?: string; 
+  imageHint?: string; 
+  createdAt: Timestamp 
+};
 
 const GalleryImageForm = ({
   image,
   onFormSubmit,
 }: {
   image?: GalleryImage;
-  onFormSubmit: (values: z.infer<typeof galleryImageSchema>) => void;
+  onFormSubmit: (values: GalleryImageFormData) => void;
 }) => {
-  const form = useForm<z.infer<typeof galleryImageSchema>>({
+  const form = useForm<GalleryImageFormData>({
     resolver: zodResolver(galleryImageSchema),
     defaultValues: image || {
       imageUrl: '',
-      description: '',
-      imageHint: '',
     },
   });
 
-  const handleSubmit = (values: z.infer<typeof galleryImageSchema>) => {
+  const handleSubmit = (values: GalleryImageFormData) => {
     onFormSubmit(values);
     form.reset();
   };
@@ -97,32 +98,6 @@ const GalleryImageForm = ({
               <FormLabel>URL Gambar</FormLabel>
               <FormControl>
                 <Input placeholder="https://..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Deskripsi (Alt Text)</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Jelaskan gambar ini..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="imageHint"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Petunjuk Gambar (Opsional)</FormLabel>
-              <FormControl>
-                <Input placeholder="cth. clinic interior" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -162,13 +137,11 @@ export default function GalleryManagementPage() {
 
   const galleryQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Simplified query to avoid index-related permission errors.
     return query(collection(firestore, 'gallery'));
   }, [firestore]);
 
   const { data: images, isLoading, error } = useCollection<GalleryImage>(galleryQuery);
 
-  // Sorting is now done on the client-side after data is fetched.
   const sortedImages = useMemo(() => {
     if (!images) return [];
     return [...images].sort((a, b) => {
@@ -178,16 +151,18 @@ export default function GalleryManagementPage() {
     });
   }, [images]);
 
-  const handleFormSubmit = async (values: z.infer<typeof galleryImageSchema>) => {
+  const handleFormSubmit = async (values: GalleryImageFormData) => {
     if (!firestore) return;
 
     const id = editingImage ? editingImage.id : uuidv4();
     const docRef = doc(firestore, 'gallery', id);
 
     try {
-      const dataToSave: any = { 
+      const dataToSave: Omit<GalleryImage, 'createdAt'> & { createdAt?: any } = { 
         ...values, 
-        id, 
+        id,
+        description: editingImage?.description || 'Deskripsi gambar',
+        imageHint: editingImage?.imageHint || 'gallery image',
       };
 
       if (!editingImage) {
@@ -281,14 +256,13 @@ export default function GalleryManagementPage() {
             <CardContent className="p-0 aspect-square relative">
               <Image 
                 src={image.imageUrl}
-                alt={image.description}
+                alt={image.description || 'Gambar galeri'}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
               />
             </CardContent>
-            <CardFooter className="p-2 bg-card/80 backdrop-blur-sm flex justify-between items-center transition-opacity md:opacity-0 md:group-hover:opacity-100">
-              <p className="text-xs text-muted-foreground truncate flex-1 pr-2">{image.description}</p>
+            <CardFooter className="p-2 bg-card/80 backdrop-blur-sm flex justify-end items-center transition-opacity md:opacity-0 md:group-hover:opacity-100">
               <div className='flex'>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingImage(image); setIsFormOpen(true); }}>
                   <Edit className="h-4 w-4" />

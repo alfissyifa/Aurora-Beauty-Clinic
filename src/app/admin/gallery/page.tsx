@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   collection,
   query,
@@ -47,7 +47,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, Edit, Trash, Image as ImageIcon } from 'lucide-react';
+import { PlusCircle, Edit, Trash, ImageIcon } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +65,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Timestamp } from 'firebase/firestore';
 
+
 const galleryImageSchema = z.object({
   imageUrl: z.string().url('URL gambar tidak valid.'),
 });
@@ -74,7 +75,7 @@ type GalleryImage = {
   imageUrl: string;
   description: string;
   imageHint: string;
-  createdAt: Timestamp;
+  createdAt?: Timestamp;
 };
 
 const GalleryImageForm = ({
@@ -139,33 +140,23 @@ export default function GalleryManagementPage() {
 
   const { data: images, isLoading, error } = useCollection<GalleryImage>(galleryQuery);
 
-  const sortedImages = useMemo(() => {
-    if (!images) return [];
-    return [...images].sort((a, b) => {
-      const dateA = a.createdAt?.toDate() ?? new Date(0);
-      const dateB = b.createdAt?.toDate() ?? new Date(0);
-      return dateB.getTime() - dateA.getTime();
-    });
-  }, [images]);
-
   const handleFormSubmit = async (values: z.infer<typeof galleryImageSchema>) => {
     if (!firestore) return;
 
     const id = editingImage ? editingImage.id : uuidv4();
     const docRef = doc(firestore, 'gallery', id);
 
-    try {
-      const dataToSave: Omit<GalleryImage, 'id' | 'createdAt'> & { id: string; createdAt?: any, description: string, imageHint: string } = {
-        ...values,
-        id,
-        description: 'Deskripsi gambar',
-        imageHint: 'gallery image'
-      };
+    const dataToSave: Omit<GalleryImage, 'id' | 'createdAt'> & { createdAt?: any } = {
+        imageUrl: values.imageUrl,
+        description: 'Deskripsi gambar', // Default value
+        imageHint: 'gallery image', // Default value
+    };
 
-      if (!editingImage) {
+    if (!editingImage) {
         dataToSave.createdAt = serverTimestamp();
-      }
-      
+    }
+
+    try {
       await setDoc(docRef, dataToSave, { merge: true });
 
       toast({
@@ -183,7 +174,7 @@ export default function GalleryManagementPage() {
       const permissionError = new FirestorePermissionError({
           path: docRef.path,
           operation: editingImage ? 'update' : 'create',
-          requestResourceData: values,
+          requestResourceData: dataToSave,
       });
       errorEmitter.emit('permission-error', permissionError);
     }
@@ -245,6 +236,7 @@ export default function GalleryManagementPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Gambar</TableHead>
+                <TableHead>URL</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -252,24 +244,22 @@ export default function GalleryManagementPage() {
               {isLoading && Array.from({ length: 3 }).map((_, i) => (
                 <TableRow key={i}>
                     <TableCell>
-                        <div className='flex items-center gap-4'>
-                            <Skeleton className="h-10 w-10 rounded-md" />
-                            <Skeleton className="h-4 w-32" />
-                        </div>
+                        <Skeleton className="h-10 w-10 rounded-md" />
                     </TableCell>
+                    <TableCell><Skeleton className="h-4 w-full" /></TableCell>
                     <TableCell className='text-right'><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                 </TableRow>
               ))}
-              {!isLoading && sortedImages.map((image) => (
+              {!isLoading && images?.map((image) => (
                 <TableRow key={image.id}>
-                  <TableCell className="font-medium">
-                      <div className='flex items-center gap-4'>
-                         <Avatar className="rounded-md">
-                            <AvatarImage src={image.imageUrl} alt={image.description} />
-                            <AvatarFallback className="rounded-md"><ImageIcon /></AvatarFallback>
-                         </Avatar>
-                         <span className="truncate max-w-xs">{image.imageUrl}</span>
-                      </div>
+                  <TableCell>
+                     <Avatar className="rounded-md">
+                        <AvatarImage src={image.imageUrl} alt={image.description} />
+                        <AvatarFallback className="rounded-md"><ImageIcon /></AvatarFallback>
+                     </Avatar>
+                  </TableCell>
+                  <TableCell className="font-medium truncate max-w-sm">
+                      {image.imageUrl}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => { setEditingImage(image); setIsFormOpen(true); }}>
@@ -300,16 +290,16 @@ export default function GalleryManagementPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {!isLoading && sortedImages.length === 0 && (
+              {!isLoading && images?.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={2} className="text-center h-24">
+                    <TableCell colSpan={3} className="text-center h-24">
                         Belum ada gambar yang ditambahkan.
                     </TableCell>
                 </TableRow>
             )}
             {error && (
                 <TableRow>
-                    <TableCell colSpan={2} className="text-center h-24 text-destructive">
+                    <TableCell colSpan={3} className="text-center h-24 text-destructive">
                         Gagal memuat data: {error.message}
                     </TableCell>
                 </TableRow>
@@ -321,3 +311,5 @@ export default function GalleryManagementPage() {
     </div>
   );
 }
+
+    

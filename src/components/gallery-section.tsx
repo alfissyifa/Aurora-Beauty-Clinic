@@ -1,7 +1,8 @@
+
 'use client';
 import Image from "next/image";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit } from "firebase/firestore";
+import { collection, query } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type GalleryImage = {
@@ -22,7 +23,7 @@ export default function GallerySection() {
 
   const galleryQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'gallery'), orderBy('createdAt', 'desc'), limit(9));
+    return query(collection(firestore, 'gallery'));
   }, [firestore]);
 
   const { data: galleryImages, isLoading } = useCollection<GalleryImage>(galleryQuery);
@@ -64,3 +65,5 @@ export default function GallerySection() {
     </section>
   );
 }
+
+    

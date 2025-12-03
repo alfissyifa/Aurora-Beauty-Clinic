@@ -45,10 +45,6 @@ export default function AdminLayout({
     { href: '/admin/contact', label: 'Kelola Kontak', icon: Phone },
   ];
 
-  const publicNavItems = [
-    { href: '/contact', label: 'Kontak', icon: Phone },
-  ];
-
   useEffect(() => {
     // If auth state is not loading and there's no user, and we are NOT on the login page, redirect to login
     if (!isUserLoading && !user && !isLoginPage) {
@@ -99,17 +95,6 @@ export default function AdminLayout({
             {navItems.map((item) => (
                 <SidebarMenuItem key={item.href + item.label}>
                     <SidebarMenuButton href={item.href} isActive={pathname.startsWith(item.href)} tooltip={item.label}>
-                        <item.icon />
-                        {item.label}
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-          <SidebarSeparator />
-           <SidebarMenu>
-            {publicNavItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton href={item.href} isActive={pathname === item.href} tooltip={item.label} target="_blank">
                         <item.icon />
                         {item.label}
                     </SidebarMenuButton>

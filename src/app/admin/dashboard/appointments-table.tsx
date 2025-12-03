@@ -54,6 +54,7 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
   const { toast } = useToast();
 
   const appointmentsQuery = useMemoFirebase(() => {
+    // CRITICAL FIX: Do not create the query until both Firestore and the user are ready.
     if (!firestore || !user) {
       return null;
     }
@@ -224,7 +225,8 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
     },
   ];
 
-  if (isUserLoading || !user) {
+  // If auth is still loading, show skeleton. This is the primary guard.
+  if (isUserLoading) {
     return <AppointmentRowSkeleton />;
   }
   

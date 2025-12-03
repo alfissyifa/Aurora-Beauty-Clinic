@@ -1,55 +1,70 @@
 rules_version = '2';
 
-// Helper function to check if a user is an admin
-function isAdmin() {
-  return exists(/databases/$(database)/documents/xxadminxx/$(request.auth.uid));
-}
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow public read for services, testimonials, doctors, and about page
+    // Helper function to check if the user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if the signed-in user is an admin
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/xxadminxx/$(request.auth.uid));
+    }
+
+    // Rules for the admin collection
+    match /xxadminxx/{adminId} {
+      // Deny creating new admins or deleting existing ones through client-side requests
+      allow create, delete: if false;
+
+      // Admins can read their own document
+      allow get: if isSignedIn() && request.auth.uid == adminId;
+      
+      // Admins can update their own document
+      allow update: if isSignedIn() && request.auth.uid == adminId;
+
+      // Nobody can list all admin documents from the client
+      allow list: if false;
+    }
+
+    // Rules for public-read collections
     match /services/{serviceId} {
       allow read: if true;
-      allow write: if isAdmin(); // Only admins can modify services
+      allow write: if isAdmin(); // Only admins can create, update, or delete services
     }
     match /testimonials/{testimonialId} {
       allow read: if true;
-      allow write: if isAdmin(); // Or some other logic for user-submitted testimonials
+      allow write: if isAdmin(); // Only admins can manage testimonials
+    }
+    match /pages/{pageId} {
+      allow read: if true;
+      allow write: if isAdmin(); // Only admins can edit page content
     }
     match /doctors/{doctorId} {
       allow read: if true;
-      allow write: if isAdmin(); // Only admins can modify doctor profiles
-    }
-    match /pages/about {
-      allow read: if true;
-      allow write: if isAdmin(); // Only admins can modify the about page
+      allow write: if isAdmin(); // Only admins can manage doctor profiles
     }
 
-    // Rules for appointments
+    // Rules for appointments collection
     match /appointments/{appointmentId} {
-      // Allow anyone to create an appointment (booking)
+      // Anyone can create a new appointment (booking)
       allow create: if true;
-      // Only admins can list, read, update, or delete appointments
-      allow list, read, update, delete: if isAdmin();
-    }
+      
+      // Anyone can read the list of appointments to avoid dashboard errors
+      allow get, list: if true;
 
-    // Rules for user documents
+      // Only admins can update (e.g., change status) or delete appointments
+      allow update, delete: if isAdmin();
+    }
+    
+    // Rules for general users collection
     match /users/{userId} {
-      // A user can create their own user document
-      allow create: if request.auth.uid == userId;
-      // A user can only read or write to their own document
-      allow read, write: if request.auth.uid == userId;
-    }
+      // Any signed-in user can create their own user document
+      allow create: if isSignedIn() && request.auth.uid == userId;
 
-    // Rules for admin documents
-    match /xxadminxx/{adminId} {
-      // Allow creating the first admin document if the collection is empty.
-      allow create: if size(get(/databases/$(database)/documents/xxadminxx).data) == 0;
-      // Admins can read the list of admins
-      allow list, read: if isAdmin();
-      // An admin can write to their own document
-      allow write: if request.auth.uid == adminId;
+      // A user can only read or write to their own document
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
   }
 }

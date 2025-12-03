@@ -23,7 +23,6 @@ export interface UseCollectionResult<T> {
   data: WithId<T>[] | null; // Document data with ID, or null.
   isLoading: boolean;       // True if loading.
   error: FirestoreError | Error | null; // Error object, or null.
-  refetch: () => void; // Function to manually refetch data
 }
 
 /**
@@ -49,7 +48,8 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
-  const fetchData = () => {
+
+  useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
       setData(null);
       setIsLoading(false);
@@ -72,34 +72,19 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        // Simplified error handling. The custom error construction was problematic.
-        // Let the original Firestore error be passed to the component.
         console.error("useCollection Firestore Error:", err);
         setError(err);
         setData(null);
         setIsLoading(false);
-        // We still emit a global error for the listener, but without the complex constructor
-        if (err.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: 'unknown/path', // Path is hard to determine reliably here
-                operation: 'list'
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
       }
     );
     
     return unsubscribe;
-  };
-
-  useEffect(() => {
-    const unsubscribe = fetchData();
-    return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]);
   
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
   }
 
-  return { data, isLoading, error, refetch: fetchData };
+  return { data, isLoading, error };
 }

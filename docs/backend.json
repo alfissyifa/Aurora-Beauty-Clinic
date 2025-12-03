@@ -190,7 +190,7 @@
         "imageHint": { "type": "string", "description": "A hint for AI image generation (e.g., 'clinic interior')." },
         "createdAt": { "type": "string", "description": "Timestamp for ordering.", "format": "date-time" }
       },
-      "required": ["id", "imageUrl", "description"]
+      "required": ["id", "imageUrl", "description", "createdAt"]
     },
     "Admin": {
       "$schema": "http://json-schema.org/draft-07/schema#",

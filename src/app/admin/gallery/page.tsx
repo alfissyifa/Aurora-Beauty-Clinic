@@ -157,13 +157,14 @@ const ImageCardSkeleton = () => (
 export default function GalleryManagementPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<GalleryImage | undefined>(undefined);
 
   const galleryQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'gallery'));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: images, isLoading, error } = useCollection<GalleryImage>(galleryQuery);
 

@@ -1,11 +1,10 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   collection,
   query,
-  orderBy,
   doc,
   setDoc,
   deleteDoc,
@@ -17,7 +16,7 @@ import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
 
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -64,7 +63,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
+import { Timestamp } from 'firebase/firestore';
 
 const galleryImageSchema = z.object({
   imageUrl: z.string().url('URL gambar tidak valid.'),
@@ -74,6 +73,7 @@ type GalleryImage = z.infer<typeof galleryImageSchema> & {
   id: string;
   description: string;
   imageHint: string;
+  createdAt: Timestamp;
 };
 
 const GalleryImageForm = ({
@@ -133,10 +133,21 @@ export default function GalleryManagementPage() {
 
   const galleryQuery = useMemoFirebase(() => {
     if (!firestore) return null;
+    // IMPORTANT: Remove orderBy from the query to avoid needing a composite index
     return query(collection(firestore, 'gallery'));
   }, [firestore]);
 
   const { data: images, isLoading, error } = useCollection<GalleryImage>(galleryQuery);
+
+  const sortedImages = useMemo(() => {
+    if (!images) return [];
+    // Sort the data on the client-side after fetching
+    return [...images].sort((a, b) => {
+      const dateA = a.createdAt?.toDate() ?? new Date(0);
+      const dateB = b.createdAt?.toDate() ?? new Date(0);
+      return dateB.getTime() - dateA.getTime();
+    });
+  }, [images]);
 
   const handleFormSubmit = async (values: z.infer<typeof galleryImageSchema>) => {
     if (!firestore) return;
@@ -145,17 +156,18 @@ export default function GalleryManagementPage() {
     const docRef = doc(firestore, 'gallery', id);
 
     try {
-      const dataToSave: Omit<GalleryImage, 'id'> & { id: string; createdAt?: any, description: string, imageHint: string } = {
+      const dataToSave: Omit<GalleryImage, 'id' | 'createdAt'> & { id: string; createdAt?: any, description: string, imageHint: string } = {
         ...values,
         id,
         description: 'Deskripsi gambar',
         imageHint: 'gallery image'
       };
 
+      // Only set createdAt on new documents
       if (!editingImage) {
         dataToSave.createdAt = serverTimestamp();
       }
-
+      
       await setDoc(docRef, dataToSave, { merge: true });
 
       toast({
@@ -186,7 +198,7 @@ export default function GalleryManagementPage() {
       await deleteDoc(docRef);
       toast({
         title: 'Gambar Dihapus',
-        description: `Gambar "${image.description}" telah dihapus.`,
+        description: `Gambar telah dihapus.`,
       });
     } catch (e: any) {
       toast({
@@ -221,7 +233,7 @@ export default function GalleryManagementPage() {
             <DialogHeader>
               <DialogTitle>{editingImage ? 'Edit Gambar' : 'Tambah Gambar Baru'}</DialogTitle>
               <DialogDescription>
-                Isi detail gambar di bawah ini. Klik simpan jika sudah selesai.
+                Masukkan URL gambar di bawah ini. Klik simpan jika sudah selesai.
               </DialogDescription>
             </DialogHeader>
             <GalleryImageForm image={editingImage} onFormSubmit={handleFormSubmit} />
@@ -250,7 +262,7 @@ export default function GalleryManagementPage() {
                     <TableCell className='text-right'><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                 </TableRow>
               ))}
-              {!isLoading && images?.map((image) => (
+              {!isLoading && sortedImages.map((image) => (
                 <TableRow key={image.id}>
                   <TableCell className="font-medium">
                       <div className='flex items-center gap-4'>
@@ -290,7 +302,7 @@ export default function GalleryManagementPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {!isLoading && images?.length === 0 && (
+              {!isLoading && sortedImages.length === 0 && (
                 <TableRow>
                     <TableCell colSpan={2} className="text-center h-24">
                         Belum ada gambar yang ditambahkan.

@@ -162,7 +162,6 @@ export default function GalleryManagementPage() {
 
   const galleryQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Simplifikasi query untuk menghindari error indeks, sama seperti appointments page
     return query(collection(firestore, 'gallery'));
   }, [firestore]);
 
@@ -170,7 +169,6 @@ export default function GalleryManagementPage() {
 
   const sortedImages = useMemo(() => {
     if (!images) return [];
-    // Lakukan sorting di sisi klien
     return [...images].sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
@@ -329,3 +327,5 @@ export default function GalleryManagementPage() {
     </div>
   );
 }
+
+    

@@ -134,7 +134,7 @@ export default function ContactAdminPage() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Telepon</FormLabel>
+                      <FormLabel>Telepon / WA</FormLabel>
                       <FormControl>
                         <Input placeholder="Nomor telepon..." {...field} />
                       </FormControl>

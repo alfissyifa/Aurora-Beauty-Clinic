@@ -1,5 +1,6 @@
 'use client';
 import Image from "next/image";
+import Link from "next/link";
 import { Phone, Mail, Clock, MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -35,9 +36,19 @@ export default function ContactPage() {
     
     const displayContactInfo = contactInfo || defaultContactInfo;
 
+    const formatWhatsAppUrl = (phone: string) => {
+        // Remove non-numeric characters and leading 0, replace with 62
+        const cleaned = phone.replace(/\D/g, '');
+        if (cleaned.startsWith('0')) {
+            return `https://wa.me/62${cleaned.substring(1)}`;
+        }
+        // Assume it already has country code if it doesn't start with 0
+        return `https://wa.me/${cleaned}`;
+    };
+
     const contactDetails = [
         { icon: MapPin, title: "Alamat Kami", value: displayContactInfo.address },
-        { icon: Phone, title: "Telepon", value: displayContactInfo.phone },
+        { icon: Phone, title: "Telepon / WA", value: displayContactInfo.phone, isPhone: true },
         { icon: Mail, title: "Email", value: displayContactInfo.email },
         { icon: Clock, title: "Jam Operasional", value: displayContactInfo.hours },
     ];
@@ -74,7 +85,13 @@ export default function ContactPage() {
                                     <CardTitle className="font-headline text-xl">{detail.title}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-muted-foreground">{detail.value}</p>
+                                     {detail.isPhone ? (
+                                        <Link href={formatWhatsAppUrl(detail.value)} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                            {detail.value}
+                                        </Link>
+                                    ) : (
+                                        <p className="text-muted-foreground">{detail.value}</p>
+                                    )}
                                 </CardContent>
                             </Card>
                         ))

@@ -45,14 +45,6 @@ service cloud.firestore {
       allow read: if true; // Anyone can read doctor profiles
       allow write: if isAdmin(); // Only admins can manage doctor profiles
     }
-    
-    // =========================
-    // ✅ GALLERY (WAJIB DITAMBAHKAN)
-    // =========================
-    match /gallery/{galleryId} {
-      allow get, list: if true;              // Publik boleh lihat
-      allow create, update, delete: if isAdmin();  // Hanya admin
-    }
 
     // Rules for appointments collection
     match /appointments/{appointmentId} {
@@ -61,6 +53,14 @@ service cloud.firestore {
 
       // Only admins can READ, UPDATE (e.g., change status), or DELETE appointments.
       allow read, update, delete: if isAdmin();
+    }
+    
+    // =========================
+    // ✅ GALLERY (WAJIB DITAMBAHKAN)
+    // =========================
+    match /gallery/{galleryId} {
+      allow get, list: if true;              // Publik boleh lihat
+      allow create, update, delete: if isAdmin();  // Hanya admin
     }
     
     // Rules for general users collection

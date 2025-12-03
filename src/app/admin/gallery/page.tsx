@@ -16,7 +16,7 @@ import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
 
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -69,8 +69,9 @@ const galleryImageSchema = z.object({
   imageUrl: z.string().url('URL gambar tidak valid.'),
 });
 
-type GalleryImage = z.infer<typeof galleryImageSchema> & {
+type GalleryImage = {
   id: string;
+  imageUrl: string;
   description: string;
   imageHint: string;
   createdAt: Timestamp;
@@ -133,7 +134,6 @@ export default function GalleryManagementPage() {
 
   const galleryQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // IMPORTANT: Remove orderBy from the query to avoid needing a composite index
     return query(collection(firestore, 'gallery'));
   }, [firestore]);
 
@@ -141,7 +141,6 @@ export default function GalleryManagementPage() {
 
   const sortedImages = useMemo(() => {
     if (!images) return [];
-    // Sort the data on the client-side after fetching
     return [...images].sort((a, b) => {
       const dateA = a.createdAt?.toDate() ?? new Date(0);
       const dateB = b.createdAt?.toDate() ?? new Date(0);
@@ -163,7 +162,6 @@ export default function GalleryManagementPage() {
         imageHint: 'gallery image'
       };
 
-      // Only set createdAt on new documents
       if (!editingImage) {
         dataToSave.createdAt = serverTimestamp();
       }

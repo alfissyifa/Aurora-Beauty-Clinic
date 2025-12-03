@@ -51,9 +51,8 @@ service cloud.firestore {
       // Anyone can create a new appointment (booking form).
       allow create: if true;
       
-      // Allow anyone to get and list appointments. This is necessary to prevent
-      // permission errors on the admin dashboard when it tries to fetch data.
-      allow get, list: if true;
+      // Explicitly allow anyone to read the appointments data to prevent dashboard errors.
+      allow read: if true;
 
       // Only admins can update (e.g., change status) or delete appointments.
       allow update, delete: if isAdmin();

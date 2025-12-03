@@ -178,6 +178,20 @@
       },
       "required": ["id", "name", "specialty", "bio", "image"]
     },
+    "GalleryImage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Gallery Image",
+      "type": "object",
+      "description": "Represents an image in the website's gallery.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the gallery image." },
+        "imageUrl": { "type": "string", "description": "URL of the image.", "format": "uri" },
+        "description": { "type": "string", "description": "Description or alt text for the image." },
+        "imageHint": { "type": "string", "description": "A hint for AI image generation (e.g., 'clinic interior')." },
+        "createdAt": { "type": "string", "description": "Timestamp for ordering.", "format": "date-time" }
+      },
+      "required": ["id", "imageUrl", "description"]
+    },
     "Admin": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Admin",
@@ -310,6 +324,17 @@
           "description": "Stores profiles of doctors and experts. Publicly readable, admin writable.",
           "params": [
             { "name": "doctorId", "description": "Unique identifier for the doctor." }
+          ]
+        }
+      },
+      {
+        "path": "/gallery/{imageId}",
+        "definition": {
+          "entityName": "GalleryImage",
+          "schema": { "$ref": "#/entities/GalleryImage" },
+          "description": "Stores images for the website gallery. Publicly readable, admin writable.",
+          "params": [
+            { "name": "imageId", "description": "Unique identifier for the gallery image." }
           ]
         }
       },

@@ -1,7 +1,32 @@
+'use client';
 import Image from "next/image";
-import { galleryImages } from "@/lib/data";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy, limit } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
+
+type GalleryImage = {
+  id: string;
+  imageUrl: string;
+  description: string;
+  imageHint?: string;
+}
+
+const GalleryImageSkeleton = () => (
+    <div className="relative aspect-square overflow-hidden rounded-lg shadow-lg">
+        <Skeleton className="w-full h-full" />
+    </div>
+);
 
 export default function GallerySection() {
+  const firestore = useFirestore();
+
+  const galleryQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'gallery'), orderBy('createdAt', 'desc'), limit(9));
+  }, [firestore]);
+
+  const { data: galleryImages, isLoading } = useCollection<GalleryImage>(galleryQuery);
+
   return (
     <section className="py-20 md:py-32 bg-background">
       <div className="container">
@@ -12,7 +37,8 @@ export default function GallerySection() {
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {galleryImages.map((image, index) => (
+          {isLoading && Array.from({length: 9}).map((_, index) => <GalleryImageSkeleton key={index} />)}
+          {!isLoading && galleryImages?.map((image) => (
             <div
               key={image.id}
               className="relative aspect-square overflow-hidden rounded-lg shadow-lg group"
@@ -28,6 +54,11 @@ export default function GallerySection() {
                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300"></div>
             </div>
           ))}
+          {!isLoading && galleryImages?.length === 0 && (
+             <div className="col-span-full text-center py-12 text-muted-foreground">
+                Galeri masih kosong.
+             </div>
+          )}
         </div>
       </div>
     </section>

@@ -1,7 +1,7 @@
-'use client'
+'use client';
 import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, LogOut, Search, Bell, MessageSquare, User as UserIcon, Settings, Mail, Sparkles, BriefcaseBusiness, Info, Phone, ShoppingCart, CalendarClock, Users } from 'lucide-react';
+import { LayoutDashboard, LogOut, Search, Bell, MessageSquare, User as UserIcon, Settings, Mail, Sparkles, BriefcaseBusiness, Info, Phone, ShoppingCart, CalendarClock, Users, GalleryHorizontal } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 
 import {
@@ -41,6 +41,7 @@ export default function AdminLayout({
     { href: '/admin/appointments', label: 'Janji Temu', icon: CalendarClock },
     { href: '/admin/services', label: 'Layanan', icon: ShoppingCart },
     { href: '/admin/team', label: 'Tim Ahli', icon: Users },
+    { href: '/admin/gallery', label: 'Galeri', icon: GalleryHorizontal },
     { href: '/admin/about', label: 'Tentang Kami', icon: Info },
     { href: '/admin/contact', label: 'Kelola Kontak', icon: Phone },
   ];

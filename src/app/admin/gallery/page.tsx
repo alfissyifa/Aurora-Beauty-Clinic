@@ -156,17 +156,17 @@ const ImageCardSkeleton = () => (
 export default function GalleryManagementPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { user } = useUser();
+  const { isUserLoading } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<GalleryImage | undefined>(undefined);
 
   const galleryQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    // Simplifikasi query untuk menghindari error indeks
+    if (!firestore) return null;
+    // Simplifikasi query untuk menghindari error indeks, sama seperti appointments page
     return query(collection(firestore, 'gallery'));
-  }, [firestore, user]);
+  }, [firestore]);
 
-  const { data: images, isLoading, error } = useCollection<GalleryImage>(galleryQuery);
+  const { data: images, isLoading: isCollectionLoading, error } = useCollection<GalleryImage>(galleryQuery);
 
   const sortedImages = useMemo(() => {
     if (!images) return [];
@@ -240,6 +240,7 @@ export default function GalleryManagementPage() {
     }
   };
 
+  const isLoading = isUserLoading || isCollectionLoading;
 
   return (
     <div className="p-4 md:p-8 space-y-6">
@@ -328,5 +329,3 @@ export default function GalleryManagementPage() {
     </div>
   );
 }
-
-    

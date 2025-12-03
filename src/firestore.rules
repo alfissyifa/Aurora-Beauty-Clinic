@@ -30,8 +30,8 @@ service cloud.firestore {
     match /appointments/{appointmentId} {
       // Allow anyone to create an appointment (booking)
       allow create: if true;
-      // Only admins can read, update, or delete appointments
-      allow read, update, delete: if isAdmin();
+      // Only admins can list, read, update, or delete appointments
+      allow list, read, update, delete: if isAdmin();
     }
 
     // Rules for user documents

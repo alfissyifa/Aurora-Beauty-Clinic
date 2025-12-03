@@ -12,7 +12,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Check, Trash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -22,20 +32,20 @@ interface Appointment {
   phone: string;
   email: string;
   service: string;
-  date: string; // ISO string
+  date: string;
   note: string;
   status: 'pending' | 'processed';
   createdAt: Timestamp;
 }
 
 const AppointmentRowSkeleton = () => (
-    <div className="space-y-2">
-      <Skeleton className="h-12 w-full" />
-      <Skeleton className="h-12 w-full" />
-      <Skeleton className="h-12 w-full" />
-      <Skeleton className="h-12 w-full" />
-      <Skeleton className="h-12 w-full" />
-    </div>
+  <div className="space-y-2">
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-12 w-full" />
+  </div>
 );
 
 export default function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
@@ -43,15 +53,22 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
+  // ✅ Defensively create a query. If the user isn't ready, it creates a "dummy" query
+  // that won't actually hit the backend, thus avoiding permission errors.
   const appointmentsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null; // Guard: Do not create query if firestore or user is not ready
+    if (!firestore || !user) {
+      // Create a dummy query that will return no results and won't trigger a backend read.
+      return query(collection(firestore!, 'appointments'), where('status', '==', '__blocked__'));
+    }
+
     return query(
-        collection(firestore, 'appointments'), 
-        where('status', '==', status),
-        orderBy('createdAt', 'desc')
+      collection(firestore, 'appointments'),
+      where('status', '==', status),
+      orderBy('createdAt', 'desc')
     );
   }, [firestore, status, user]);
 
+  // ✅ The hook is always called, respecting the Rules of Hooks.
   const { data, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
 
   const handleStatusChange = async (id: string, newStatus: 'processed') => {
@@ -64,18 +81,18 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
         description: `Janji temu telah dipindahkan ke "Sudah Dibaca".`
       });
     } catch (e: any) {
-       toast({
+      toast({
         variant: "destructive",
         title: "Gagal Memperbarui",
         description: e.message || "Tidak dapat memperbarui status janji temu."
-       });
-       if (e.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'update',
-                requestResourceData: { status: newStatus }
-            }));
-       }
+      });
+      if (e.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: { status: newStatus }
+        }));
+      }
     }
   };
 
@@ -89,17 +106,17 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
         description: `Janji temu telah berhasil dihapus.`
       });
     } catch (e: any) {
-       toast({
+      toast({
         variant: "destructive",
         title: "Gagal Menghapus",
         description: e.message || "Tidak dapat menghapus janji temu."
-       });
-       if (e.code === 'permission-denied') {
-         errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'delete'
-            }));
-       }
+      });
+      if (e.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete'
+        }));
+      }
     }
   };
 
@@ -128,30 +145,24 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
       accessorKey: "date",
       header: "Tgl Konsultasi",
       cell: ({ row }: any) => {
-          try {
-              const dateValue = row.getValue("date");
-              if (!dateValue) return 'N/A';
-              return format(new Date(dateValue), "eeee, dd MMMM yyyy", { locale: id });
-          } catch (e) {
-              console.error("Invalid date format for 'date':", row.getValue("date"));
-              return 'Invalid Date';
-          }
+        try {
+          const dateValue = row.getValue("date");
+          if (!dateValue) return 'N/A';
+          return format(new Date(dateValue), "eeee, dd MMMM yyyy", { locale: id });
+        } catch {
+          return 'Invalid Date';
+        }
       },
     },
-      {
+    {
       accessorKey: "createdAt",
       header: "Tgl Booking",
       cell: ({ row }: any) => {
-          const timestamp = row.getValue("createdAt") as unknown;
-          if (timestamp instanceof Timestamp && typeof timestamp.seconds === 'number') {
-              try {
-                return format(timestamp.toDate(), "dd MMM yyyy, HH:mm");
-              } catch(e) {
-                console.error("Invalid date format for 'createdAt':", timestamp);
-                return 'Invalid Date';
-              }
-          }
-          return 'N/A';
+        const timestamp = row.getValue("createdAt") as unknown;
+        if (timestamp instanceof Timestamp && typeof timestamp.seconds === 'number') {
+          return format(timestamp.toDate(), "dd MMM yyyy, HH:mm");
+        }
+        return 'N/A';
       },
     },
     {
@@ -162,36 +173,40 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
         return (
           <div className='flex gap-2 justify-center'>
             {appointment.status === 'pending' && (
-               <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm"><Check className="h-4 w-4 mr-2" /> Proses</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Konfirmasi Proses Janji Temu</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Anda yakin ingin memproses janji temu untuk <strong>{appointment.name}</strong>? Tindakan ini akan memindahkan janji temu ke tab "Sudah Dibaca".
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Batal</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleStatusChange(appointment.id, 'processed')}>
-                        Ya, Proses
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Check className="h-4 w-4 mr-2" /> Proses
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Konfirmasi Proses Janji Temu</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Anda yakin ingin memproses janji temu untuk <strong>{appointment.name}</strong>?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleStatusChange(appointment.id, 'processed')}>
+                      Ya, Proses
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="icon"><Trash className="h-4 w-4" /></Button>
+                <Button variant="destructive" size="icon">
+                  <Trash className="h-4 w-4" />
+                </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Apakah Anda yakin ingin menghapus janji temu ini secara permanen? Tindakan ini tidak dapat dibatalkan.
+                    Apakah Anda yakin ingin menghapus janji temu ini?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -208,27 +223,28 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
     },
   ];
 
-  if (isLoading || isUserLoading || !firestore) {
-      return <AppointmentRowSkeleton />;
+  // ✅ Show loading state while auth is being checked OR while the real query is running.
+  if (isUserLoading || (user && isLoading)) {
+    return <AppointmentRowSkeleton />;
   }
-
+  
   if (error) {
-    return <div className='text-center text-destructive p-4'>Error: {error.message}</div>
+    return <div className='text-center text-destructive p-4'>Error: {error.message}</div>;
   }
-
+  
   return (
     <DataTable
-        columns={columns}
-        data={data || []}
-        isLoading={isLoading}
-        onFilterChange={() => {}}
-        onSortChange={() => {}}
-        onPageSizeChange={() => {}}
-        onNextPage={() => {}}
-        onPrevPage={() => {}}
-        canNextPage={false}
-        canPrevPage={false}
-        pageIndex={0}
+      columns={columns}
+      data={data || []}
+      isLoading={isLoading}
+      onFilterChange={() => {}}
+      onSortChange={() => {}}
+      onPageSizeChange={() => {}}
+      onNextPage={() => {}}
+      onPrevPage={() => {}}
+      canNextPage={false}
+      canPrevPage={false}
+      pageIndex={0}
     />
   );
 }

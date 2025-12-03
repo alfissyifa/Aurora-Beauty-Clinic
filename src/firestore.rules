@@ -16,18 +16,16 @@ service cloud.firestore {
 
     // Rules for the admin collection
     match /xxadminxx/{adminId} {
-      // Admins cannot be created or deleted from the client-side for security.
-      // This must be done manually in the Firebase console or via a trusted backend.
-      allow create, delete: if false;
-
-      // An admin can only get (read) their own document.
-      allow get: if isSignedIn() && request.auth.uid == adminId;
+      // Only allow the very first admin to be created via this rule.
+      // Subsequent admins must be added by other means (e.g. backend function or console).
+      allow create: if size(get(/databases/$(database)/documents/xxadminxx).data) == 0;
       
-      // An admin can only update their own document.
-      allow update: if isSignedIn() && request.auth.uid == adminId;
+      // An admin can only read or update their own document.
+      allow get, update: if isSignedIn() && request.auth.uid == adminId;
 
       // Listing all admin documents is not allowed for security reasons.
-      allow list: if false;
+      // Deleting admins from the client is disallowed.
+      allow list, delete: if false;
     }
 
     // Rules for public-read collections (Services, Testimonials, etc.)
@@ -55,7 +53,6 @@ service cloud.firestore {
       
       // Allow anyone to get and list appointments. This is necessary to prevent
       // permission errors on the admin dashboard when it tries to fetch data.
-      // The dashboard code itself will filter what is shown.
       allow get, list: if true;
 
       // Only admins can update (e.g., change status) or delete appointments.
@@ -64,11 +61,8 @@ service cloud.firestore {
     
     // Rules for general users collection
     match /users/{userId} {
-      // Any authenticated user can create their own user document.
-      allow create: if isSignedIn() && request.auth.uid == userId;
-
-      // A user can only read or write to their own document.
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      // A user can only create, read or write to their own document.
+      allow create, read, write: if isSignedIn() && request.auth.uid == userId;
     }
   }
 }

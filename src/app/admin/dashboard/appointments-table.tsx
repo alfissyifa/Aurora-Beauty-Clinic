@@ -53,12 +53,9 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  // ✅ Defensively create a query. If the user isn't ready, it creates a "dummy" query
-  // that won't actually hit the backend, thus avoiding permission errors.
   const appointmentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) {
-      // Create a dummy query that will return no results and won't trigger a backend read.
-      return query(collection(firestore!, 'appointments'), where('status', '==', '__blocked__'));
+      return null;
     }
 
     return query(
@@ -68,7 +65,6 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
     );
   }, [firestore, status, user]);
 
-  // ✅ The hook is always called, respecting the Rules of Hooks.
   const { data, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
 
   const handleStatusChange = async (id: string, newStatus: 'processed') => {
@@ -148,6 +144,11 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
         try {
           const dateValue = row.getValue("date");
           if (!dateValue) return 'N/A';
+          // Check if date is a Firestore Timestamp
+          if (dateValue && typeof dateValue.toDate === 'function') {
+            return format(dateValue.toDate(), "eeee, dd MMMM yyyy", { locale: id });
+          }
+          // Fallback for ISO string
           return format(new Date(dateValue), "eeee, dd MMMM yyyy", { locale: id });
         } catch {
           return 'Invalid Date';
@@ -223,8 +224,7 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
     },
   ];
 
-  // ✅ Show loading state while auth is being checked OR while the real query is running.
-  if (isUserLoading || (user && isLoading)) {
+  if (isUserLoading || !user) {
     return <AppointmentRowSkeleton />;
   }
   

@@ -15,7 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -192,15 +192,15 @@ const formatPrice = (price: number) => {
 
 export default function ServicesManagementPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | undefined>(undefined);
 
   const servicesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    // Removing orderBy to prevent index errors and ensure data is fetched.
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'services'));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: services, isLoading, error } = useCollection<Service>(servicesQuery);
 
@@ -211,7 +211,7 @@ export default function ServicesManagementPage() {
     const docRef = doc(firestore, 'services', id);
 
     try {
-      await setDoc(docRef, values, { merge: true });
+      await setDoc(docRef, { ...values, id }, { merge: true });
       toast({
         title: 'Sukses!',
         description: `Layanan "${values.title}" berhasil ${editingService ? 'diperbarui' : 'ditambahkan'}.`,

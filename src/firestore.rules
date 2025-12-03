@@ -45,9 +45,13 @@ service cloud.firestore {
       allow read: if true; // Anyone can read doctor profiles
       allow write: if isAdmin(); // Only admins can manage doctor profiles
     }
-    match /gallery/{imageId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    
+    // =========================
+    // ✅ GALLERY (WAJIB DITAMBAHKAN)
+    // =========================
+    match /gallery/{galleryId} {
+      allow get, list: if true;              // Publik boleh lihat
+      allow create, update, delete: if isAdmin();  // Hanya admin
     }
 
     // Rules for appointments collection

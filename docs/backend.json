@@ -149,6 +149,19 @@
         },
         "required": ["title", "subtitle", "paragraph1", "paragraph2"]
       },
+      "ContactInfo": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Contact Info",
+        "type": "object",
+        "description": "Represents the contact information for the clinic.",
+        "properties": {
+          "address": { "type": "string", "description": "The clinic's physical address." },
+          "phone": { "type": "string", "description": "The clinic's phone number." },
+          "email": { "type": "string", "description": "The clinic's contact email.", "format": "email" },
+          "hours": { "type": "string", "description": "The clinic's hours of operation." }
+        },
+        "required": ["address", "phone", "email", "hours"]
+    },
     "Doctor": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Doctor",
@@ -282,9 +295,9 @@
         "definition": {
           "entityName": "PageContent",
           "schema": { "$ref": "#/entities/PageContent" },
-          "description": "Stores editable content for various pages like 'About Us'. Publicly readable, admin writable.",
+          "description": "Stores editable content for various pages like 'About Us'. For contact info, use the 'ContactInfo' entity. Publicly readable, admin writable.",
           "params": [
-            { "name": "pageId", "description": "Unique identifier for the page (e.g., 'about')." }
+            { "name": "pageId", "description": "Unique identifier for the page (e.g., 'about', 'contact')." }
           ]
         }
       },

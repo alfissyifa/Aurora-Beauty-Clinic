@@ -1,35 +1,47 @@
+'use client';
 import Image from "next/image";
 import { Phone, Mail, Clock, MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import BookingForm from "@/components/booking-form";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
+
+type ContactInfo = {
+    address: string;
+    phone: string;
+    email: string;
+    hours: string;
+}
+
+const defaultContactInfo: ContactInfo = {
+    address: "Jl. Cantik Raya No. 123, Jakarta Selatan, 12345, Indonesia",
+    phone: "(021) 1234 5678",
+    email: "info@aurorabeauty.com",
+    hours: "Senin - Sabtu: 09:00 - 20:00",
+};
 
 export default function ContactPage() {
     const mapImage = PlaceHolderImages.find(img => img.id === 'contact-map');
+    const firestore = useFirestore();
 
-  const contactDetails = [
-    {
-      icon: MapPin,
-      title: "Alamat Kami",
-      value: "Jl. Cantik Raya No. 123, Jakarta Selatan, 12345, Indonesia",
-    },
-    {
-      icon: Phone,
-      title: "Telepon",
-      value: "(021) 1234 5678",
-    },
-    {
-      icon: Mail,
-      title: "Email",
-      value: "info@aurorabeauty.com",
-    },
-    {
-      icon: Clock,
-      title: "Jam Operasional",
-      value: "Senin - Sabtu: 09:00 - 20:00",
-    },
-  ];
-  
+    const contactInfoRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'pages', 'contact');
+    }, [firestore]);
+
+    const { data: contactInfo, isLoading } = useDoc<ContactInfo>(contactInfoRef);
+    
+    const displayContactInfo = contactInfo || defaultContactInfo;
+
+    const contactDetails = [
+        { icon: MapPin, title: "Alamat Kami", value: displayContactInfo.address },
+        { icon: Phone, title: "Telepon", value: displayContactInfo.phone },
+        { icon: Mail, title: "Email", value: displayContactInfo.email },
+        { icon: Clock, title: "Jam Operasional", value: displayContactInfo.hours },
+    ];
+
   return (
     <div className="bg-background">
         <div className="container py-20 md:py-28">
@@ -42,17 +54,31 @@ export default function ContactPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
                 <div className="lg:col-span-1 space-y-8">
-                    {contactDetails.map(detail => (
-                        <Card key={detail.title} className="bg-card shadow-lg">
-                            <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-                                <detail.icon className="h-6 w-6 text-accent" />
-                                <CardTitle className="font-headline text-xl">{detail.title}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-muted-foreground">{detail.value}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
+                    {isLoading ? (
+                        Array.from({ length: 4 }).map((_, index) => (
+                            <Card key={index} className="bg-card shadow-lg">
+                                <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
+                                    <Skeleton className="h-6 w-6 rounded-full" />
+                                    <Skeleton className="h-6 w-32" />
+                                </CardHeader>
+                                <CardContent>
+                                    <Skeleton className="h-5 w-full" />
+                                </CardContent>
+                            </Card>
+                        ))
+                    ) : (
+                        contactDetails.map(detail => (
+                            <Card key={detail.title} className="bg-card shadow-lg">
+                                <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
+                                    <detail.icon className="h-6 w-6 text-accent" />
+                                    <CardTitle className="font-headline text-xl">{detail.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-muted-foreground">{detail.value}</p>
+                                </CardContent>
+                            </Card>
+                        ))
+                    )}
                 </div>
                 <div className="lg:col-span-2">
                     <Card className="shadow-lg">

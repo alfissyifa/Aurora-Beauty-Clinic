@@ -1,5 +1,9 @@
+'use client';
+
 import Link from "next/link";
 import { Facebook, Instagram, Twitter } from "lucide-react";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 const navLinks = [
   { href: "/services", label: "Layanan" },
@@ -7,7 +11,28 @@ const navLinks = [
   { href: "/contact", label: "Kontak" },
 ];
 
+type ContactInfo = {
+    address: string;
+    phone: string;
+    email: string;
+};
+
+const defaultContactInfo: ContactInfo = {
+    address: "Jl. Cantik Raya No. 123, Jakarta",
+    email: "info@aurorabeauty.com",
+    phone: "(021) 1234 5678",
+};
+
 export default function Footer() {
+  const firestore = useFirestore();
+  const contactInfoRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'pages', 'contact');
+  }, [firestore]);
+
+  const { data: contactInfo } = useDoc<ContactInfo>(contactInfoRef);
+  const displayContact = contactInfo || defaultContactInfo;
+
   return (
     <footer className="bg-black text-white">
       <div className="container py-12">
@@ -40,9 +65,9 @@ export default function Footer() {
           <div>
             <h3 className="text-xl font-bold mb-4">Contact Us</h3>
             <div className="text-white/70 space-y-2">
-                <p>Jl. Cantik Raya No. 123, Jakarta</p>
-                <p>info@aurorabeauty.com</p>
-                <p>(021) 1234 5678</p>
+                <p>{displayContact.address}</p>
+                <p>{displayContact.email}</p>
+                <p>{displayContact.phone}</p>
             </div>
             <div className="flex space-x-4 mt-4">
               <Link href="#" className="text-white/70 hover:text-primary transition-colors"><Facebook/></Link>

@@ -53,26 +53,34 @@ const AppointmentRowSkeleton = () => (
 function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [filterText, setFilterText] = React.useState('');
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!firestore) {
       return null;
     }
-
-    // KRUSIAL: Hapus 'where' dan 'orderBy' untuk menghindari error akibat indeks yang hilang.
-    // Ini adalah langkah diagnosis untuk memastikan query dasar bisa berjalan.
-    // Nantinya Anda perlu membuat indeks komposit di Firebase Console.
+    // Menghapus 'where' dan 'orderBy' untuk menghindari error akibat indeks yang hilang.
+    // Pemfilteran akan dilakukan di sisi klien.
     return query(collection(firestore, 'appointments'));
       
   }, [firestore]);
 
   const { data: rawData, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
   
-  // Filter data di sisi klien sebagai solusi sementara
+  // Filter data di sisi klien berdasarkan status dan teks pencarian
   const data = React.useMemo(() => {
     if (!rawData) return [];
-    return rawData.filter(appt => appt.status === status);
-  }, [rawData, status]);
+    
+    let filteredData = rawData.filter(appt => appt.status === status);
+
+    if (filterText) {
+      filteredData = filteredData.filter(appt => 
+        appt.name.toLowerCase().includes(filterText.toLowerCase())
+      );
+    }
+    
+    return filteredData;
+  }, [rawData, status, filterText]);
 
 
   const handleStatusChange = (id: string, newStatus: 'processed') => {
@@ -241,7 +249,7 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
       columns={columns}
       data={data || []}
       isLoading={isLoading}
-      onFilterChange={() => {}}
+      onFilterChange={setFilterText}
       onSortChange={() => {}}
       onPageSizeChange={() => {}}
       onNextPage={() => {}}

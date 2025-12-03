@@ -68,11 +68,13 @@ import { Textarea } from '@/components/ui/textarea';
 
 const galleryImageSchema = z.object({
   imageUrl: z.string().url('URL gambar tidak valid.'),
-  description: z.string().min(3, 'Deskripsi minimal 3 karakter.'),
-  imageHint: z.string().optional(),
 });
 
-type GalleryImage = z.infer<typeof galleryImageSchema> & { id: string };
+type GalleryImage = z.infer<typeof galleryImageSchema> & {
+  id: string;
+  description: string;
+  imageHint: string;
+};
 
 const GalleryImageForm = ({
   image,
@@ -85,8 +87,6 @@ const GalleryImageForm = ({
     resolver: zodResolver(galleryImageSchema),
     defaultValues: image || {
       imageUrl: '',
-      description: '',
-      imageHint: '',
     },
   });
 
@@ -106,32 +106,6 @@ const GalleryImageForm = ({
               <FormLabel>URL Gambar</FormLabel>
               <FormControl>
                 <Input placeholder="https://..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Deskripsi Gambar</FormLabel>
-              <FormControl>
-                <Textarea rows={3} placeholder="cth. Suasana ruang tunggu klinik" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-         <FormField
-          control={form.control}
-          name="imageHint"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Petunjuk Gambar (Opsional)</FormLabel>
-              <FormControl>
-                <Input placeholder="cth. clinic waiting room" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -159,7 +133,7 @@ export default function GalleryManagementPage() {
 
   const galleryQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'gallery'), orderBy('createdAt', 'desc'));
+    return query(collection(firestore, 'gallery'));
   }, [firestore]);
 
   const { data: images, isLoading, error } = useCollection<GalleryImage>(galleryQuery);
@@ -171,9 +145,11 @@ export default function GalleryManagementPage() {
     const docRef = doc(firestore, 'gallery', id);
 
     try {
-      const dataToSave: Omit<GalleryImage, 'id'> & { id: string; createdAt?: any } = { 
+      const dataToSave: Omit<GalleryImage, 'id'> & { id: string; createdAt?: any, description: string, imageHint: string } = {
         ...values,
         id,
+        description: 'Deskripsi gambar',
+        imageHint: 'gallery image'
       };
 
       if (!editingImage) {
@@ -259,7 +235,6 @@ export default function GalleryManagementPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Gambar</TableHead>
-                <TableHead>Deskripsi</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -272,7 +247,6 @@ export default function GalleryManagementPage() {
                             <Skeleton className="h-4 w-32" />
                         </div>
                     </TableCell>
-                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                     <TableCell className='text-right'><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                 </TableRow>
               ))}
@@ -287,7 +261,6 @@ export default function GalleryManagementPage() {
                          <span className="truncate max-w-xs">{image.imageUrl}</span>
                       </div>
                   </TableCell>
-                  <TableCell>{image.description}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => { setEditingImage(image); setIsFormOpen(true); }}>
                       <Edit className="h-4 w-4" />
@@ -303,7 +276,7 @@ export default function GalleryManagementPage() {
                           <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
                           <AlertDialogDescription>
                             Tindakan ini tidak dapat dibatalkan. Ini akan menghapus gambar
-                            "{image.description}" secara permanen.
+                            secara permanen.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -319,14 +292,14 @@ export default function GalleryManagementPage() {
               ))}
               {!isLoading && images?.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={3} className="text-center h-24">
+                    <TableCell colSpan={2} className="text-center h-24">
                         Belum ada gambar yang ditambahkan.
                     </TableCell>
                 </TableRow>
             )}
             {error && (
                 <TableRow>
-                    <TableCell colSpan={3} className="text-center h-24 text-destructive">
+                    <TableCell colSpan={2} className="text-center h-24 text-destructive">
                         Gagal memuat data: {error.message}
                     </TableCell>
                 </TableRow>

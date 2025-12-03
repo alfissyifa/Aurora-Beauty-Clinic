@@ -158,9 +158,10 @@
           "address": { "type": "string", "description": "The clinic's physical address." },
           "phone": { "type": "string", "description": "The clinic's phone number." },
           "email": { "type": "string", "description": "The clinic's contact email.", "format": "email" },
-          "hours": { "type": "string", "description": "The clinic's hours of operation." }
+          "hours": { "type": "string", "description": "The clinic's hours of operation." },
+          "mapIframe": { "type": "string", "description": "The HTML iframe code for the location map." }
         },
-        "required": ["address", "phone", "email", "hours"]
+        "required": ["address", "phone", "email", "hours", "mapIframe"]
     },
     "Doctor": {
       "$schema": "http://json-schema.org/draft-07/schema#",

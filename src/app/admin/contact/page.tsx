@@ -28,21 +28,24 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { Textarea } from '@/components/ui/textarea';
 
 const contactSchema = z.object({
   address: z.string().min(10, 'Alamat minimal 10 karakter.'),
   phone: z.string().min(10, 'Nomor telepon minimal 10 karakter.'),
   email: z.string().email('Format email tidak valid.'),
   hours: z.string().min(10, 'Jam operasional minimal 10 karakter.'),
+  mapIframe: z.string().min(15, 'Kode iframe tidak valid.').startsWith('<iframe', {message: 'Harus berupa tag iframe HTML.'}),
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
 
-const defaultContactInfo = {
+const defaultContactInfo: ContactFormData = {
     address: "Jl. Cantik Raya No. 123, Jakarta Selatan, 12345, Indonesia",
     phone: "(021) 1234 5678",
     email: "info@aurorabeauty.com",
     hours: "Senin - Sabtu: 09:00 - 20:00",
+    mapIframe: '<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.666421916307!2d106.82496461539415!3d-6.17539246229248!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f5d2e764b12d%3A0x3d2ad6e1e0e9bcc8!2sMonumen%20Nasional!5e0!3m2!1sen!2sid!4v1623912345678" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>',
 };
 
 
@@ -111,6 +114,7 @@ export default function ContactAdminPage() {
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
+               <Skeleton className="h-24 w-full" />
               <Skeleton className="h-12 w-32" />
             </div>
           ) : (
@@ -163,6 +167,19 @@ export default function ContactAdminPage() {
                       <FormLabel>Jam Operasional</FormLabel>
                       <FormControl>
                         <Input placeholder="Contoh: Senin - Jumat: 09:00 - 18:00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="mapIframe"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lokasi Kami (iFrame Peta)</FormLabel>
+                      <FormControl>
+                        <Textarea rows={5} placeholder='Tempelkan kode iframe dari Google Maps di sini...' {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

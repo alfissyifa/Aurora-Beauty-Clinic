@@ -62,11 +62,6 @@ service cloud.firestore {
       allow get, list: if true;              // Publik boleh lihat
       allow create, update, delete: if isAdmin();  // Hanya admin
     }
-
-    match /repositories/{repositoryId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
     
     // Rules for general users collection
     match /users/{userId} {

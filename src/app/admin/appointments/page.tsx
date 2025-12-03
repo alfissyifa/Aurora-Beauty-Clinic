@@ -56,7 +56,7 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
   const { toast } = useToast();
 
   const appointmentsQuery = useMemoFirebase(() => {
-    if (!firestore || !user || isUserLoading) {
+    if (!firestore || !user) {
       return null;
     }
 
@@ -65,7 +65,7 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
       where('status', '==', status),
       orderBy('createdAt', 'desc')
     );
-  }, [firestore, status, user, isUserLoading]);
+  }, [firestore, status, user]);
 
   const { data, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
 
@@ -276,3 +276,5 @@ export default function AppointmentsPage() {
     </div>
   )
 }
+
+    

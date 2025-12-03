@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -59,15 +59,14 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
     if (!firestore) {
       return null;
     }
-    // Menghapus 'where' dan 'orderBy' untuk menghindari error akibat indeks yang hilang.
-    // Pemfilteran akan dilakukan di sisi klien.
+    // Simplifies the query by removing `where` and `orderBy` to prevent index-related errors.
+    // Filtering and sorting will be handled client-side.
     return query(collection(firestore, 'appointments'));
-      
   }, [firestore]);
 
   const { data: rawData, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
   
-  // Filter data di sisi klien berdasarkan status dan teks pencarian
+  // Filter and sort data on the client-side
   const data = React.useMemo(() => {
     if (!rawData) return [];
     
@@ -75,11 +74,17 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
 
     if (filterText) {
       filteredData = filteredData.filter(appt => 
-        appt.name.toLowerCase().includes(filterText.toLowerCase())
+        appt.name.toLowerCase().includes(filterText.toLowerCase()) ||
+        appt.service.toLowerCase().includes(filterText.toLowerCase())
       );
     }
     
-    return filteredData;
+    // Sort by creation date, most recent first
+    return filteredData.sort((a, b) => {
+        const dateA = a.createdAt?.toDate() ?? new Date(0);
+        const dateB = b.createdAt?.toDate() ?? new Date(0);
+        return dateB.getTime() - dateA.getTime();
+    });
   }, [rawData, status, filterText]);
 
 
@@ -250,7 +255,7 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
       data={data || []}
       isLoading={isLoading}
       onFilterChange={setFilterText}
-      onSortChange={() => {}}
+      onSortChange={() => {}} // Sorting is now client-side
       onPageSizeChange={() => {}}
       onNextPage={() => {}}
       onPrevPage={() => {}}

@@ -17,7 +17,7 @@ import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
 
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -159,15 +159,16 @@ export default function GalleryManagementPage() {
   const { toast } = useToast();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<GalleryImage | undefined>(undefined);
-  const { user } = useUser();
 
   const galleryQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
+    // Simplified query to avoid index-related permission errors.
     return query(collection(firestore, 'gallery'));
-  }, [firestore, user]);
+  }, [firestore]);
 
   const { data: images, isLoading, error } = useCollection<GalleryImage>(galleryQuery);
 
+  // Sorting is now done on the client-side after data is fetched.
   const sortedImages = useMemo(() => {
     if (!images) return [];
     return [...images].sort((a, b) => {

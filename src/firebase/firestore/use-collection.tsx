@@ -9,8 +9,6 @@ import {
   QuerySnapshot,
   CollectionReference,
 } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -26,23 +24,10 @@ export interface UseCollectionResult<T> {
   refetch: () => void; // Function to manually refetch data
 }
 
-/* Internal implementation of Query:
-  https://github.com/firebase/firebase-js-sdk/blob/c5f08a9bc5da0d2b0207802c972d53724ccef055/packages/firestore/src/lite-api/reference.ts#L143
-*/
-export interface InternalQuery extends Query<DocumentData> {
-  _query: {
-    path: {
-      canonicalString(): string;
-      toString(): string;
-    }
-  }
-}
-
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
  * Handles nullable references/queries.
  * 
- *
  * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
  * use useMemo to memoize it per React guidence.  Also make sure that it's dependencies are stable
  * references
@@ -85,29 +70,11 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        // Simplified error handling to prevent issues with complex queries
+        // Simplified error handling. The custom error construction was problematic.
+        // Let the original Firestore error be passed to the component.
         setError(error);
         setData(null);
         setIsLoading(false);
-
-        // Still emit a generic permission error if that's the code.
-        if (error.code === 'permission-denied') {
-            let path = 'unknown';
-            try {
-                if (memoizedTargetRefOrQuery.type === 'collection') {
-                    path = (memoizedTargetRefOrQuery as CollectionReference).path;
-                } else if (memoizedTargetRefOrQuery.type === 'query') {
-                    // This is a simplified fallback.
-                    path = (memoizedTargetRefOrQuery as any)._query.path.segments.join('/');
-                }
-            } catch {}
-
-            const contextualError = new FirestorePermissionError({
-              operation: 'list',
-              path: path,
-            });
-            errorEmitter.emit('permission-error', contextualError);
-        }
       }
     );
     

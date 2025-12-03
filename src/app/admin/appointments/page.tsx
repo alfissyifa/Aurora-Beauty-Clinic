@@ -52,12 +52,10 @@ const AppointmentRowSkeleton = () => (
 
 function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
   const appointmentsQuery = useMemoFirebase(() => {
-    // KRUSIAL: Jangan buat query sama sekali jika user atau firestore belum siap.
-    if (!firestore || !user) {
+    if (!firestore) {
       return null;
     }
 
@@ -66,7 +64,7 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
       where('status', '==', status),
       orderBy('createdAt', 'desc')
     );
-  }, [firestore, status, user]);
+  }, [firestore, status]);
 
   const { data, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
 
@@ -223,7 +221,7 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
     },
   ];
 
-  if (isUserLoading) {
+  if (isLoading) {
     return <AppointmentRowSkeleton />;
   }
 

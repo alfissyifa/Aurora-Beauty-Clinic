@@ -16,7 +16,7 @@ import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
 
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -156,27 +156,15 @@ const ImageCardSkeleton = () => (
 export default function GalleryManagementPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { user, isUserLoading } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<GalleryImage | undefined>(undefined);
 
   const galleryQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    // Simplified query to avoid missing index errors. Sorting is handled client-side.
+    if (!firestore) return null;
     return query(collection(firestore, 'gallery'));
-  }, [firestore, user]);
+  }, [firestore]);
 
-  const { data: images, isLoading: isCollectionLoading, error } = useCollection<GalleryImage>(galleryQuery);
-
-  const sortedImages = useMemo(() => {
-    if (!images) return [];
-    // Perform sorting on the client-side
-    return [...images].sort((a, b) => {
-        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
-        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
-        return dateB.getTime() - dateA.getTime();
-    });
-  }, [images]);
+  const { data: images, isLoading, error } = useCollection<GalleryImage>(galleryQuery);
 
   const handleFormSubmit = async (values: z.infer<typeof galleryImageSchema>) => {
     if (!firestore) return;
@@ -240,7 +228,6 @@ export default function GalleryManagementPage() {
     }
   };
 
-  const isLoading = isUserLoading || isCollectionLoading;
 
   return (
     <div className="p-4 md:p-8 space-y-6">
@@ -277,7 +264,7 @@ export default function GalleryManagementPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {isLoading && Array.from({ length: 5 }).map((_, i) => <ImageCardSkeleton key={i} />)}
         
-        {!isLoading && sortedImages.map((image) => (
+        {!isLoading && images?.map((image) => (
           <Card key={image.id} className="overflow-hidden shadow-lg group">
             <CardContent className="p-0 aspect-square relative">
               <Image 
@@ -320,7 +307,7 @@ export default function GalleryManagementPage() {
           </Card>
         ))}
 
-        {!isLoading && sortedImages.length === 0 && (
+        {!isLoading && images?.length === 0 && (
             <div className="col-span-full text-center h-48 flex items-center justify-center text-muted-foreground">
                 Belum ada gambar di galeri. Silakan tambahkan gambar baru.
             </div>
@@ -329,6 +316,5 @@ export default function GalleryManagementPage() {
     </div>
   );
 }
-    
 
     

@@ -37,12 +37,16 @@ export default function ContactPage() {
     const displayContactInfo = contactInfo || defaultContactInfo;
 
     const formatWhatsAppUrl = (phone: string) => {
-        // Remove non-numeric characters and leading 0, replace with 62
-        const cleaned = phone.replace(/\D/g, '');
+        // Remove non-numeric characters
+        let cleaned = phone.replace(/\D/g, '');
+        // Replace leading 0 with 62 if it exists
         if (cleaned.startsWith('0')) {
-            return `https://wa.me/62${cleaned.substring(1)}`;
+            cleaned = '62' + cleaned.substring(1);
         }
-        // Assume it already has country code if it doesn't start with 0
+        // If it doesn't start with 62, prepend it (handles cases like 812... directly)
+        else if (!cleaned.startsWith('62')) {
+            cleaned = '62' + cleaned;
+        }
         return `https://wa.me/${cleaned}`;
     };
 

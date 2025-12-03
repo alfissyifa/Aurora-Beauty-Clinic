@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   collection,
   query,
@@ -9,6 +9,8 @@ import {
   setDoc,
   deleteDoc,
   serverTimestamp,
+  orderBy,
+  Timestamp,
 } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,7 +18,7 @@ import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
 
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -62,7 +64,7 @@ const galleryImageSchema = z.object({
   imageHint: z.string().optional(),
 });
 
-type GalleryImage = z.infer<typeof galleryImageSchema> & { id: string, createdAt: any };
+type GalleryImage = z.infer<typeof galleryImageSchema> & { id: string, createdAt: Timestamp };
 
 const GalleryImageForm = ({
   image,
@@ -158,11 +160,12 @@ export default function GalleryManagementPage() {
   const { toast } = useToast();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<GalleryImage | undefined>(undefined);
+  const { user } = useUser();
 
   const galleryQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'gallery'));
-  }, [firestore]);
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'gallery'), orderBy('createdAt', 'desc'));
+  }, [firestore, user]);
 
   const { data: images, isLoading, error } = useCollection<GalleryImage>(galleryQuery);
 
@@ -316,5 +319,3 @@ export default function GalleryManagementPage() {
     </div>
   );
 }
-
-    

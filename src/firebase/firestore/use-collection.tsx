@@ -85,21 +85,29 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        const path: string =
-          memoizedTargetRefOrQuery.type === 'collection'
-            ? (memoizedTargetRefOrQuery as CollectionReference).path
-            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
+        // Simplified error handling to prevent issues with complex queries
+        setError(error);
+        setData(null);
+        setIsLoading(false);
 
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path,
-        })
+        // Still emit a generic permission error if that's the code.
+        if (error.code === 'permission-denied') {
+            let path = 'unknown';
+            try {
+                if (memoizedTargetRefOrQuery.type === 'collection') {
+                    path = (memoizedTargetRefOrQuery as CollectionReference).path;
+                } else if (memoizedTargetRefOrQuery.type === 'query') {
+                    // This is a simplified fallback.
+                    path = (memoizedTargetRefOrQuery as any)._query.path.segments.join('/');
+                }
+            } catch {}
 
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
-
-        errorEmitter.emit('permission-error', contextualError);
+            const contextualError = new FirestorePermissionError({
+              operation: 'list',
+              path: path,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+        }
       }
     );
     

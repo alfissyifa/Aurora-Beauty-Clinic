@@ -50,7 +50,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
     }
 
     try {
-      // Cek apakah sudah ada admin
+      // 1. Cek apakah sudah ada admin
       const adminsCollectionRef = collection(firestore, 'xxadminxx');
       const adminSnapshot = await getDocs(adminsCollectionRef);
 
@@ -63,10 +63,11 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
         return;
       }
 
-      // Jika belum ada admin, lanjutkan membuat admin pertama
+      // 2. Jika belum ada, buat user baru di Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
+      // 3. Buat dokumen admin di Firestore dengan UID dari user yang baru dibuat
       const adminDocRef = doc(firestore, "xxadminxx", user.uid);
       await setDoc(adminDocRef, {
           uid: user.uid,
@@ -86,7 +87,7 @@ function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) 
 
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Email ini sudah digunakan. Silakan gunakan email lain atau login.';
-      } else if (error.name === 'FirebaseError' && (error as any).code === 'permission-denied') {
+      } else if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
           path: `xxadminxx/${auth.currentUser?.uid || 'new_user'}`,
           operation: 'create',

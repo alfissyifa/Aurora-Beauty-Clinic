@@ -9,6 +9,8 @@ import {
   QuerySnapshot,
   CollectionReference,
 } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -69,12 +71,21 @@ export function useCollection<T = any>(
         setError(null);
         setIsLoading(false);
       },
-      (error: FirestoreError) => {
+      (err: FirestoreError) => {
         // Simplified error handling. The custom error construction was problematic.
         // Let the original Firestore error be passed to the component.
-        setError(error);
+        console.error("useCollection Firestore Error:", err);
+        setError(err);
         setData(null);
         setIsLoading(false);
+        // We still emit a global error for the listener, but without the complex constructor
+        if (err.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: 'unknown/path', // Path is hard to determine reliably here
+                operation: 'list'
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
       }
     );
     

@@ -55,7 +55,7 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
 
   const appointmentsQuery = useMemoFirebase(() => {
     // KRUSIAL: Jangan buat query sama sekali jika user atau firestore belum siap.
-    if (!firestore || !user || isUserLoading) {
+    if (!firestore || !user) {
       return null;
     }
 
@@ -64,7 +64,7 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
       where('status', '==', status),
       orderBy('createdAt', 'desc')
     );
-  }, [firestore, status, user, isUserLoading]);
+  }, [firestore, status, user]);
 
   const { data, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
 
@@ -226,7 +226,7 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
   ];
 
   // Tampilkan skeleton jika user masih loading, ini adalah guard utama
-  if (isUserLoading || !user) {
+  if (isUserLoading) {
     return <AppointmentRowSkeleton />;
   }
   
@@ -250,5 +250,3 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
     />
   );
 }
-
-    

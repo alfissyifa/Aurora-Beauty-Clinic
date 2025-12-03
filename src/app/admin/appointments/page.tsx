@@ -59,14 +59,21 @@ function AppointmentsTable({ status }: { status: 'pending' | 'processed' }) {
       return null;
     }
 
-    return query(
-      collection(firestore, 'appointments'),
-      where('status', '==', status),
-      orderBy('createdAt', 'desc')
-    );
-  }, [firestore, status]);
+    // KRUSIAL: Hapus 'where' dan 'orderBy' untuk menghindari error akibat indeks yang hilang.
+    // Ini adalah langkah diagnosis untuk memastikan query dasar bisa berjalan.
+    // Nantinya Anda perlu membuat indeks komposit di Firebase Console.
+    return query(collection(firestore, 'appointments'));
+      
+  }, [firestore]);
 
-  const { data, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
+  const { data: rawData, isLoading, error } = useCollection<Appointment>(appointmentsQuery);
+  
+  // Filter data di sisi klien sebagai solusi sementara
+  const data = React.useMemo(() => {
+    if (!rawData) return [];
+    return rawData.filter(appt => appt.status === status);
+  }, [rawData, status]);
+
 
   const handleStatusChange = (id: string, newStatus: 'processed') => {
     if (!firestore) return;

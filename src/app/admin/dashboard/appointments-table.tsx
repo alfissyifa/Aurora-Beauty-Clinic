@@ -44,8 +44,6 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
 
   const appointmentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // This query now filters by status directly, which is more efficient
-    // and aligns better with security rules practices (even though rules are open now).
     return query(
         collection(firestore, 'appointments'), 
         where('status', '==', status),
@@ -64,7 +62,6 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
         title: "Status Diperbarui",
         description: `Janji temu telah dipindahkan ke "Sudah Dibaca".`
       });
-      // The useCollection hook should update automatically, but a manual refetch can be an option if needed
     } catch (e: any) {
        toast({
         variant: "destructive",
@@ -133,7 +130,6 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
           try {
               const dateValue = row.getValue("date");
               if (!dateValue) return 'N/A';
-              // It is likely an ISO string from the booking form, so new Date() should parse it correctly.
               return format(new Date(dateValue), "eeee, dd MMMM yyyy", { locale: id });
           } catch (e) {
               console.error("Invalid date format for 'date':", row.getValue("date"));
@@ -146,7 +142,6 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
       header: "Tgl Booking",
       cell: ({ row }: any) => {
           const timestamp = row.getValue("createdAt") as unknown;
-          // Validate that timestamp is a Firestore Timestamp object with seconds property
           if (timestamp instanceof Timestamp && typeof timestamp.seconds === 'number') {
               try {
                 return format(timestamp.toDate(), "dd MMM yyyy, HH:mm");
@@ -212,7 +207,7 @@ export default function AppointmentsTable({ status }: { status: 'pending' | 'pro
     },
   ];
 
-  if (isLoading) {
+  if (isLoading || !firestore) {
       return <AppointmentRowSkeleton />;
   }
 

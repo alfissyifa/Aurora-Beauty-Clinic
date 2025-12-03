@@ -1,11 +1,10 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   collection,
   query,
-  orderBy,
   doc,
   setDoc,
   deleteDoc,
@@ -162,10 +161,20 @@ export default function GalleryManagementPage() {
 
   const galleryQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'gallery'), orderBy('createdAt', 'desc'));
+    return query(collection(firestore, 'gallery'));
   }, [firestore]);
 
   const { data: images, isLoading, error } = useCollection<GalleryImage>(galleryQuery);
+
+  const sortedImages = useMemo(() => {
+    if (!images) return [];
+    // Sort by createdAt timestamp descending, handling both server timestamps and null values
+    return [...images].sort((a, b) => {
+      const aTime = a.createdAt?.seconds ?? 0;
+      const bTime = b.createdAt?.seconds ?? 0;
+      return bTime - aTime;
+    });
+  }, [images]);
 
   const handleFormSubmit = async (values: z.infer<typeof galleryImageSchema>) => {
     if (!firestore) return;
@@ -255,7 +264,7 @@ export default function GalleryManagementPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {isLoading && Array.from({ length: 5 }).map((_, i) => <ImageCardSkeleton key={i} />)}
         
-        {!isLoading && images?.map((image) => (
+        {!isLoading && sortedImages.map((image) => (
           <Card key={image.id} className="overflow-hidden shadow-lg group">
             <CardContent className="p-0 aspect-square relative">
               <Image 
@@ -298,7 +307,7 @@ export default function GalleryManagementPage() {
           </Card>
         ))}
 
-        {!isLoading && images?.length === 0 && (
+        {!isLoading && sortedImages.length === 0 && (
             <div className="col-span-full text-center h-48 flex items-center justify-center text-muted-foreground">
                 Belum ada gambar di galeri. Silakan tambahkan gambar baru.
             </div>
@@ -307,4 +316,3 @@ export default function GalleryManagementPage() {
     </div>
   );
 }
-

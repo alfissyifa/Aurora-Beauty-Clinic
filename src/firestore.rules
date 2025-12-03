@@ -46,8 +46,10 @@ service cloud.firestore {
       allow write: if isAdmin(); // Only admins can manage doctor profiles
     }
     match /gallery/{imageId} {
-      allow read: if true; // Anyone can view the gallery
-      allow write: if isAdmin(); // Only admins can manage the gallery
+      // Explicitly allow list and get for all users to fix admin panel errors.
+      allow get, list: if true;
+      // Only admins can write to the gallery
+      allow write: if isAdmin();
     }
 
     // Rules for appointments collection

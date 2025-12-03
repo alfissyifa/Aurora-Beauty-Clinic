@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   collection,
   query,
@@ -316,3 +316,5 @@ export default function GalleryManagementPage() {
     </div>
   );
 }
+
+    

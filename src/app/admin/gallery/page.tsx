@@ -168,7 +168,6 @@ export default function GalleryManagementPage() {
 
   const sortedImages = useMemo(() => {
     if (!images) return [];
-    // Sort by createdAt timestamp descending, handling both server timestamps and null values
     return [...images].sort((a, b) => {
       const aTime = a.createdAt?.seconds ?? 0;
       const bTime = b.createdAt?.seconds ?? 0;

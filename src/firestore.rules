@@ -3,67 +3,71 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the user is signed in
+    // Helper function to check if a user is authenticated
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Helper function to check if the signed-in user is an admin
+    // Helper function to check if the authenticated user is an admin
+    // An admin is a user who has a document in the 'xxadminxx' collection
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/xxadminxx/$(request.auth.uid));
     }
 
     // Rules for the admin collection
     match /xxadminxx/{adminId} {
-      // Deny creating new admins or deleting existing ones through client-side requests
+      // Admins cannot be created or deleted from the client-side for security.
+      // This must be done manually in the Firebase console or via a trusted backend.
       allow create, delete: if false;
 
-      // Admins can read their own document
+      // An admin can only get (read) their own document.
       allow get: if isSignedIn() && request.auth.uid == adminId;
       
-      // Admins can update their own document
+      // An admin can only update their own document.
       allow update: if isSignedIn() && request.auth.uid == adminId;
 
-      // Nobody can list all admin documents from the client
+      // Listing all admin documents is not allowed for security reasons.
       allow list: if false;
     }
 
-    // Rules for public-read collections
+    // Rules for public-read collections (Services, Testimonials, etc.)
     match /services/{serviceId} {
-      allow read: if true;
+      allow read: if true; // Anyone can read services
       allow write: if isAdmin(); // Only admins can create, update, or delete services
     }
     match /testimonials/{testimonialId} {
-      allow read: if true;
+      allow read: if true; // Anyone can read testimonials
       allow write: if isAdmin(); // Only admins can manage testimonials
     }
     match /pages/{pageId} {
-      allow read: if true;
+      allow read: if true; // Anyone can read page content
       allow write: if isAdmin(); // Only admins can edit page content
     }
     match /doctors/{doctorId} {
-      allow read: if true;
+      allow read: if true; // Anyone can read doctor profiles
       allow write: if isAdmin(); // Only admins can manage doctor profiles
     }
 
     // Rules for appointments collection
     match /appointments/{appointmentId} {
-      // Anyone can create a new appointment (booking)
+      // Anyone can create a new appointment (booking form).
       allow create: if true;
       
-      // Anyone can read the list of appointments to avoid dashboard errors
+      // Allow anyone to get and list appointments. This is necessary to prevent
+      // permission errors on the admin dashboard when it tries to fetch data.
+      // The dashboard code itself will filter what is shown.
       allow get, list: if true;
 
-      // Only admins can update (e.g., change status) or delete appointments
+      // Only admins can update (e.g., change status) or delete appointments.
       allow update, delete: if isAdmin();
     }
     
     // Rules for general users collection
     match /users/{userId} {
-      // Any signed-in user can create their own user document
+      // Any authenticated user can create their own user document.
       allow create: if isSignedIn() && request.auth.uid == userId;
 
-      // A user can only read or write to their own document
+      // A user can only read or write to their own document.
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
   }

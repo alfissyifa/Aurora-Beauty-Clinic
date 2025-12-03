@@ -156,19 +156,21 @@ const ImageCardSkeleton = () => (
 export default function GalleryManagementPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<GalleryImage | undefined>(undefined);
 
   const galleryQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
+    // Simplified query to avoid missing index errors. Sorting is handled client-side.
     return query(collection(firestore, 'gallery'));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: images, isLoading: isCollectionLoading, error } = useCollection<GalleryImage>(galleryQuery);
 
   const sortedImages = useMemo(() => {
     if (!images) return [];
+    // Perform sorting on the client-side
     return [...images].sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
@@ -327,5 +329,6 @@ export default function GalleryManagementPage() {
     </div>
   );
 }
+    
 
     

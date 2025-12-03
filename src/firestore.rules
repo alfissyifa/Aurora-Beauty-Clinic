@@ -48,13 +48,14 @@ service cloud.firestore {
 
     // Rules for appointments collection
     match /appointments/{appointmentId} {
-      // Anyone can create a new appointment (booking form).
-      allow create: if true;
-      
-      // Explicitly allow anyone to read (get, list) the appointments data to prevent dashboard errors.
+      // Allow anyone to READ (get, list) appointments.
+      // This is crucial for the admin dashboard to function without permission errors.
       allow read: if true;
+      
+      // Allow anyone to CREATE a new appointment (booking form).
+      allow create: if true;
 
-      // Only admins can update (e.g., change status) or delete appointments.
+      // Only admins can UPDATE (e.g., change status) or DELETE appointments.
       allow update, delete: if isAdmin();
     }
     
